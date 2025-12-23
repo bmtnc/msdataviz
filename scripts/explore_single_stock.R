@@ -134,30 +134,7 @@ fundamental_data <- ttm_per_share_data %>%
 if (nrow(fundamental_data) == 0) {
   cat("No fundamental data available for", FUNDAMENTAL_METRIC, "\n")
 } else {
-  p1 <- fundamental_data %>%
-    ggplot2::ggplot(ggplot2::aes(x = fiscalDateEnding, y = value)) +
-    ggplot2::geom_col(fill = "steelblue", alpha = 0.7) +
-    ggplot2::labs(
-      title = paste0(TICKER, ": ", FUNDAMENTAL_METRIC),
-      x = "Fiscal Date Ending",
-      y = FUNDAMENTAL_METRIC
-    ) +
-    ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
-    ggplot2::theme(
-      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-      plot.title = ggplot2::element_text(size = 14, face = "bold")
-    )
-
-  if (max(fundamental_data$value, na.rm = TRUE) > 1e9) {
-    p1 <- p1 + ggplot2::scale_y_continuous(
-      labels = scales::label_number(scale = 1e-9, suffix = "B")
-    )
-  } else if (max(fundamental_data$value, na.rm = TRUE) > 1e6) {
-    p1 <- p1 + ggplot2::scale_y_continuous(
-      labels = scales::label_number(scale = 1e-6, suffix = "M")
-    )
-  }
-
+  p1 <- plot_fundamental_bar(fundamental_data, TICKER, FUNDAMENTAL_METRIC)
   print(p1)
   cat("Fundamental bar plot created with", nrow(fundamental_data), "quarters\n\n")
 }
@@ -174,60 +151,7 @@ valuation_data <- ttm_per_share_data %>%
 if (nrow(valuation_data) == 0) {
   cat("No valuation data available for", VALUATION_METRIC, "\n")
 } else {
-  most_recent <- valuation_data %>%
-    dplyr::slice_tail(n = 1)
-
-  p2 <- valuation_data %>%
-    ggplot2::ggplot(ggplot2::aes(x = date, y = value)) +
-    ggplot2::geom_line(color = "darkgreen", alpha = 0.8, linewidth = 1) +
-    ggplot2::geom_point(
-      data = most_recent,
-      ggplot2::aes(x = date, y = value),
-      color = "black",
-      size = 3
-    ) +
-    ggplot2::geom_label(
-      data = most_recent,
-      ggplot2::aes(
-        x = date,
-        y = value,
-        label = scales::comma(value, accuracy = 0.01)
-      ),
-      nudge_x = as.numeric(diff(range(valuation_data$date))) * 0.04,
-      nudge_y = max(valuation_data$value, na.rm = TRUE) * 0.02,
-      color = "black",
-      fill = "white",
-      alpha = 0.8,
-      size = 2.5,
-      fontface = "bold"
-    ) +
-    ggplot2::labs(
-      title = paste0(TICKER, ": ", VALUATION_METRIC),
-      x = "Date",
-      y = VALUATION_METRIC
-    ) +
-    ggplot2::coord_cartesian(
-      xlim = c(
-        min(valuation_data$date),
-        max(valuation_data$date) + as.numeric(diff(range(valuation_data$date))) * 0.12
-      )
-    ) +
-    ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y-%m") +
-    ggplot2::theme(
-      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-      plot.title = ggplot2::element_text(size = 14, face = "bold")
-    )
-
-  if (max(valuation_data$value, na.rm = TRUE) > 1e9) {
-    p2 <- p2 + ggplot2::scale_y_continuous(
-      labels = scales::label_number(scale = 1e-9, suffix = "B")
-    )
-  } else if (max(valuation_data$value, na.rm = TRUE) > 1e6) {
-    p2 <- p2 + ggplot2::scale_y_continuous(
-      labels = scales::label_number(scale = 1e-6, suffix = "M")
-    )
-  }
-
+  p2 <- plot_valuation_line(valuation_data, TICKER, VALUATION_METRIC)
   print(p2)
   cat("Valuation line plot created with", nrow(valuation_data), "daily points\n\n")
 }
