@@ -112,7 +112,7 @@ if (!"commonStockSharesOutstanding" %in% names(ttm_per_share_data)) {
 }
 
 # ---- SECTION 4: Prepare decomposition data ----------------------------------
-cat("Preparing enhanced price decomposition data for", TICKER, "...\n")
+cat("Preparing price decomposition data for", TICKER, "...\n")
 
 price_data <- ttm_per_share_data %>%
   dplyr::filter(!is.na(adjusted_close)) %>%
@@ -127,10 +127,6 @@ price_data <- ttm_per_share_data %>%
     price = adjusted_close,
     fundamental_per_share = !!rlang::sym(FUNDAMENTAL_METRIC),
     shares_outstanding = commonStockSharesOutstanding
-  ) %>%
-  dplyr::mutate(
-    total_fundamental = fundamental_per_share * shares_outstanding,
-    multiple = price / fundamental_per_share
   )
 
 if (nrow(price_data) == 0) {
@@ -152,10 +148,14 @@ if (is.null(BASE_DATE)) {
   }
 }
 
-# Get base values
+# Get base values for logging
 base_values <- price_data %>%
   dplyr::filter(date == base_date) %>%
-  dplyr::slice(1)
+  dplyr::slice(1) %>%
+  dplyr::mutate(
+    total_fundamental = fundamental_per_share * shares_outstanding,
+    multiple = price / fundamental_per_share
+  )
 
 base_price <- base_values$price
 base_fundamental_per_share <- base_values$fundamental_per_share
@@ -170,75 +170,7 @@ cat("Base shares outstanding:", round(base_shares / 1e9, 2), "B\n")
 cat("Base multiple:", round(base_multiple, 1), "x\n")
 
 # ---- SECTION 5: Calculate decomposition -------------------------------------
-decomposition_data <- price_data %>%
-  dplyr::filter(date >= base_date) %>%
-  dplyr::mutate(
-    fundamental_per_share_change = fundamental_per_share -
-      base_fundamental_per_share,
-    multiple_change = multiple - base_multiple,
-    price_change = price - base_price,
-
-    fundamental_contribution = fundamental_per_share_change * base_multiple,
-    multiple_contribution = base_fundamental_per_share * multiple_change,
-
-    interaction_term = fundamental_per_share_change * multiple_change,
-
-    fundamental_contrib_adj = fundamental_contribution +
-      ifelse(
-        abs(fundamental_contribution) + abs(multiple_contribution) > 0,
-        interaction_term *
-          abs(fundamental_contribution) /
-          (abs(fundamental_contribution) + abs(multiple_contribution)),
-        interaction_term / 2
-      ),
-
-    multiple_contrib_adj = multiple_contribution +
-      ifelse(
-        abs(fundamental_contribution) + abs(multiple_contribution) > 0,
-        interaction_term *
-          abs(multiple_contribution) /
-          (abs(fundamental_contribution) + abs(multiple_contribution)),
-        interaction_term / 2
-      ),
-
-    actual_per_share_change = fundamental_per_share -
-      base_fundamental_per_share,
-
-    nopat_growth_per_share_effect = (total_fundamental -
-      base_total_fundamental) /
-      shares_outstanding,
-    share_count_per_share_effect = actual_per_share_change -
-      nopat_growth_per_share_effect,
-
-    nopat_growth_contribution = ifelse(
-      abs(actual_per_share_change) > 1e-10,
-      fundamental_contrib_adj *
-        nopat_growth_per_share_effect /
-        actual_per_share_change,
-      fundamental_contrib_adj * 0.5
-    ),
-
-    share_count_contribution = ifelse(
-      abs(actual_per_share_change) > 1e-10,
-      fundamental_contrib_adj *
-        share_count_per_share_effect /
-        actual_per_share_change,
-      fundamental_contrib_adj * 0.5
-    )
-  ) %>%
-  dplyr::select(
-    date,
-    price,
-    fundamental_per_share,
-    shares_outstanding,
-    total_fundamental,
-    multiple,
-    price_change,
-    fundamental_contribution = fundamental_contrib_adj,
-    multiple_contribution = multiple_contrib_adj,
-    nopat_growth_contribution,
-    share_count_contribution
-  )
+decomposition_data <- calculate_price_decomposition(price_data, base_date)
 
 # ---- SECTION 6: Create enhanced stacked area chart --------------------------
 cat("Creating enhanced price decomposition visualization...\n")
@@ -255,95 +187,3 @@ p <- plot_price_decomposition(
 
 print(p)
 
-# ---- SECTION 7: Summary statistics ------------------------------------------
-cat("\n=== ENHANCED DECOMPOSITION SUMMARY ===\n")
-
-cat(
-  "Period:",
-  as.character(base_date),
-  "to",
-  as.character(current_data$date),
-  "\n"
-)
-cat("Total price change: $", round(current_data$price_change, 2), "\n\n")
-
-cat("Main decomposition:\n")
-cat(
-  "  - Fundamental contribution: $",
-  round(current_data$fundamental_contribution, 2),
-  " (",
-  round(
-    100 * current_data$fundamental_contribution / current_data$price_change,
-    1
-  ),
-  "%)\n"
-)
-cat(
-  "  - Multiple contribution: $",
-  round(current_data$multiple_contribution, 2),
-  " (",
-  round(
-    100 * current_data$multiple_contribution / current_data$price_change,
-    1
-  ),
-  "%)\n\n"
-)
-
-cat("Fundamental breakdown:\n")
-cat(
-  "  - From total",
-  gsub("_ttm_per_share", "", FUNDAMENTAL_METRIC),
-  "growth: $",
-  round(current_data$nopat_growth_contribution, 2),
-  " (",
-  round(
-    100 * current_data$nopat_growth_contribution / current_data$price_change,
-    1
-  ),
-  "%)\n"
-)
-cat(
-  "  - From share count changes: $",
-  round(current_data$share_count_contribution, 2),
-  " (",
-  round(
-    100 * current_data$share_count_contribution / current_data$price_change,
-    1
-  ),
-  "%)\n"
-)
-
-cat("\nCurrent metrics:\n")
-cat("  - Price: $", round(current_data$price, 2), "\n")
-cat(
-  "  -",
-  FUNDAMENTAL_METRIC,
-  ":",
-  round(current_data$fundamental_per_share, 2),
-  "\n"
-)
-cat(
-  "  - Shares outstanding:",
-  round(current_data$shares_outstanding / 1e9, 2),
-  "B\n"
-)
-cat("  - Multiple:", round(current_data$multiple, 1), "x\n")
-
-share_change_pct <- (current_data$shares_outstanding - base_shares) /
-  base_shares *
-  100
-total_fundamental_change_pct <- (current_data$total_fundamental -
-  base_total_fundamental) /
-  base_total_fundamental *
-  100
-
-cat("\nChange summary:\n")
-cat("  - Share count change:", round(share_change_pct, 1), "%\n")
-cat(
-  "  - Total",
-  gsub("_ttm_per_share", "", FUNDAMENTAL_METRIC),
-  "change:",
-  round(total_fundamental_change_pct, 1),
-  "%\n"
-)
-cat("\nData points:", nrow(decomposition_data), "\n")
