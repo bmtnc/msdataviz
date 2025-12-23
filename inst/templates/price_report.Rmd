@@ -17,3 +17,10 @@ set_ggplot_theme()
 plot_price(params$price_data, params$ticker) %>%
   add_data_callout()
 ```
+
+## Drawdown from Highs
+
+```{r drawdown-chart, fig.width=10, fig.height=6}
+plot_drawdown(params$price_data, params$ticker) %>%
+  add_data_callout(label_fn = scales::percent)
+```

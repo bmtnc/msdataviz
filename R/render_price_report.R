@@ -4,25 +4,27 @@
 #'
 #' @param ticker Character string for the ticker symbol
 #' @param output_dir Directory for output file (default: current directory)
+#' @param start_date Start date for filtering data (default: 2017-12-31)
+#' @param end_date End date for filtering data (default: NULL, no upper bound)
 #' @param s3_bucket S3 bucket name
 #' @param aws_region AWS region
-#' @param start_date Start date for data
 #'
 #' @return Path to the rendered HTML file
 #' @export
 render_price_report <- function(
     ticker,
-    output_dir = ".",
+    output_dir = "output",
+    start_date = as.Date("2017-12-31"),
+    end_date = NULL,
     s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
-    aws_region = Sys.getenv("AWS_REGION", "us-east-1"),
-    start_date = as.Date("2004-12-31")
+    aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
 
   price_data <- avpipeline::process_ticker_from_s3(
     ticker = ticker,
     bucket_name = s3_bucket,
-    start_date = start_date,
+    start_date = as.Date("2000-01-01"),
     region = aws_region
   )
 
@@ -33,6 +35,8 @@ render_price_report <- function(
   price_data <- price_data %>%
     dplyr::filter(!is.na(adjusted_close)) %>%
     dplyr::select(date, price = adjusted_close) %>%
+    dplyr::filter(date >= start_date) %>%
+    dplyr::filter(if (!is.null(end_date)) date <= end_date else TRUE) %>%
     dplyr::arrange(date)
 
   template_path <- system.file(
