@@ -1,0 +1,19 @@
+---
+title: "`r params$ticker` Price Report"
+output: html_document
+params:
+  ticker: "TICKER"
+  price_data: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+set_ggplot_theme()
+```
+
+## Price History
+
+```{r price-chart, fig.width=10, fig.height=6}
+plot_price(params$price_data, params$ticker) %>%
+  add_data_callout()
+```

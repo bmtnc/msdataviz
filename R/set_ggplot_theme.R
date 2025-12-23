@@ -42,8 +42,8 @@ set_ggplot_theme <- function(
 
       # Axis text styling
       axis.text.x = ggplot2::element_text(
-        angle = 45,
-        hjust = 1,
+        angle = 0,
+        hjust = 0.5,
         size = base_size - 1
       ),
       axis.text.y = ggplot2::element_text(size = base_size - 1),
