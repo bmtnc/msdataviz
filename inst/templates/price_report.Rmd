@@ -19,6 +19,7 @@ params:
   roic_n_industry_stocks: 0
   anomaly_data: NULL
   drawdown_anomaly_data: NULL
+  rolling_beta_data: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -53,6 +54,17 @@ plot_drawdown(
   n_industry_stocks = params$n_industry_stocks
 ) %>%
   add_data_callout(label_fn = scales::percent)
+```
+
+## Rolling Beta
+
+```{r rolling-beta-chart, fig.width=10, fig.height=6}
+plot_rolling_beta(
+  params$rolling_beta_data,
+  params$ticker,
+  sector_name = params$sector_name,
+  n_sector_stocks = params$n_sector_stocks
+)
 ```
 
 ## Valuation and ROIC

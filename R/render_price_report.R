@@ -68,6 +68,26 @@ render_price_report <- function(
     aws_region = aws_region
   )
 
+  # Prepare rolling beta data
+  ttm_data <- artifacts$ttm_data
+  sector_name <- get_ticker_sector(ticker, ttm_data)
+  sector_tickers <- get_sector_tickers(sector_name, ttm_data)
+
+  filtered_prices <- artifacts$price_data %>%
+    dplyr::filter(date >= start_date)
+
+  if (!is.null(end_date)) {
+    filtered_prices <- filtered_prices %>%
+      dplyr::filter(date <= end_date)
+  }
+
+  rolling_beta_data <- prepare_rolling_beta_data(
+    price_data = filtered_prices,
+    target_ticker = ticker,
+    sector_tickers = sector_tickers,
+    roll_window = 252L
+  )
+
   template_path <- system.file(
     "templates", "price_report.Rmd",
     package = "msdataviz"
@@ -104,7 +124,8 @@ render_price_report <- function(
       roic_n_sector_stocks = roic_result$n_sector_stocks,
       roic_n_industry_stocks = roic_result$n_industry_stocks,
       anomaly_data = anomaly_result$data,
-      drawdown_anomaly_data = drawdown_anomaly_result$data
+      drawdown_anomaly_data = drawdown_anomaly_result$data,
+      rolling_beta_data = rolling_beta_data
     ),
     quiet = TRUE
   )
