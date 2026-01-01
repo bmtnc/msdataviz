@@ -34,15 +34,15 @@ plot_cumulative_return <- function(
     !is.null(n_industry_stocks) &&
     n_industry_stocks >= min_industry_stocks
 
-  # Build caption with population counts
+  # Build caption with population counts (each on separate line)
   caption_parts <- c()
   if (!is.null(n_sector_stocks)) {
-    caption_parts <- c(caption_parts, paste0(sector_name, ": n = ", n_sector_stocks))
+    caption_parts <- c(caption_parts, paste0(sector_name, " population: ", n_sector_stocks))
   }
   if (!is.null(n_industry_stocks)) {
-    caption_parts <- c(caption_parts, paste0(industry_name, ": n = ", n_industry_stocks))
+    caption_parts <- c(caption_parts, paste0(industry_name, " population: ", n_industry_stocks))
   }
-  caption <- if (length(caption_parts) > 0) paste(caption_parts, collapse = "; ") else NULL
+  caption <- if (length(caption_parts) > 0) paste(caption_parts, collapse = "\n") else NULL
 
   # Legend labels
   sector_legend <- paste0(sector_name, " (eq. wt. composite)")

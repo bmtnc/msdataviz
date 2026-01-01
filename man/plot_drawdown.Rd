@@ -4,16 +4,41 @@
 \alias{plot_drawdown}
 \title{Create Drawdown from Highs Chart}
 \usage{
-plot_drawdown(data, ticker)
+plot_drawdown(
+  data,
+  ticker,
+  sector_median_drawdown = NULL,
+  industry_median_drawdown = NULL,
+  sector_name = "Sector",
+  industry_name = "Industry",
+  n_sector_stocks = NULL,
+  n_industry_stocks = NULL,
+  min_industry_stocks = 10
+)
 }
 \arguments{
 \item{data}{Data frame with columns: date, and either price or drawdown}
 
 \item{ticker}{Character string for the ticker symbol}
+
+\item{sector_median_drawdown}{Median current drawdown across sector stocks}
+
+\item{industry_median_drawdown}{Median current drawdown across industry stocks}
+
+\item{sector_name}{Sector name for caption}
+
+\item{industry_name}{Industry name for caption}
+
+\item{n_sector_stocks}{Number of stocks in sector}
+
+\item{n_industry_stocks}{Number of stocks in industry}
+
+\item{min_industry_stocks}{Minimum stocks required to show industry line (default: 10)}
 }
 \value{
 A ggplot2 object
 }
 \description{
 Creates an area chart showing rolling drawdown from cumulative highs.
+Optionally shows horizontal reference lines for sector/industry median drawdowns.
 }

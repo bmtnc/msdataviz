@@ -15,6 +15,13 @@
 #' @param y_label Label for y-axis
 #' @param subtitle Optional subtitle text (e.g., for disclaimers)
 #' @param show_outlier_labels Whether to show ticker labels for outliers (default: TRUE)
+#' @param x_as_percent Whether to transform x-axis as percentage (multiplies by 100 and adds %)
+#' @param x_pct_labels Whether to add % to x-axis labels (no transformation, for data already in %)
+#' @param y_pct_labels Whether to add % to y-axis labels (no transformation, for data already in %)
+#' @param n_sector_stocks Number of stocks in sector for caption
+#' @param n_industry_stocks Number of stocks in industry for caption
+#' @param sector_name Sector name for caption
+#' @param industry_name Industry name for caption
 #'
 #' @return A ggplot2 object
 #' @export
@@ -30,14 +37,27 @@ plot_elliptic_envelope <- function(
     x_label = x_col,
     y_label = y_col,
     subtitle = NULL,
-    show_outlier_labels = TRUE
+    show_outlier_labels = TRUE,
+    x_as_percent = FALSE,
+    x_pct_labels = FALSE,
+    y_pct_labels = FALSE,
+    n_sector_stocks = NULL,
+    n_industry_stocks = NULL,
+    sector_name = "Sector",
+    industry_name = "Industry"
 ) {
   avpipeline::validate_non_empty(data, "data")
 
   # Add envelope results to data, using winsorized values for plotting
+  # Apply percentage transformation if requested
+  x_winsorized <- envelope_fit$x_winsorized
+  if (x_as_percent) {
+    x_winsorized <- x_winsorized * 100
+  }
+
   plot_data <- data %>%
     dplyr::mutate(
-      x_val = envelope_fit$x_winsorized,
+      x_val = x_winsorized,
       y_val = envelope_fit$y_winsorized,
       ticker = .data[[ticker_col]],
       group = .data[[group_col]],
@@ -46,14 +66,20 @@ plot_elliptic_envelope <- function(
     ) %>%
     dplyr::filter(!is.na(x_val) & !is.na(y_val))
 
-  # Build caption with winsorization note
-  winsorize_pct <- envelope_fit$winsorize_pct * 100
-  winsorize_note <- sprintf("Data winsorized at %.0fth/%.0fth percentiles.", winsorize_pct, 100 - winsorize_pct)
-  full_caption <- if (!is.null(subtitle)) {
-    paste0(subtitle, "\n", winsorize_note)
-  } else {
-    winsorize_note
+  # Build caption with population counts and winsorization note
+  caption_parts <- c()
+  if (!is.null(n_sector_stocks)) {
+    caption_parts <- c(caption_parts, paste0(sector_name, " population: ", n_sector_stocks))
   }
+  if (!is.null(n_industry_stocks)) {
+    caption_parts <- c(caption_parts, paste0(industry_name, " population: ", n_industry_stocks))
+  }
+  winsorize_pct <- envelope_fit$winsorize_pct * 100
+  caption_parts <- c(
+    caption_parts,
+    sprintf("Data winsorized at %.0fth/%.0fth percentiles", winsorize_pct, 100 - winsorize_pct)
+  )
+  full_caption <- paste(caption_parts, collapse = "\n")
 
   # Categorize points
   plot_data <- plot_data %>%
@@ -73,6 +99,11 @@ plot_elliptic_envelope <- function(
     cov = envelope_fit$cov,
     level = 1 - envelope_fit$contamination
   )
+
+  # Apply same percentage transformation to ellipse if requested
+  if (x_as_percent) {
+    ellipse_df$x <- ellipse_df$x * 100
+  }
 
   # Define colors - distinct colors for industry vs sector peers
   # Industry peers: darker, more saturated
@@ -158,7 +189,7 @@ plot_elliptic_envelope <- function(
       )
     )
 
-  # Add outlier labels if requested
+  # Add outlier labels if requested - for all outliers in sector plus target ticker
   if (show_outlier_labels) {
     outlier_data <- plot_data %>%
       dplyr::filter(is_outlier | ticker == target_ticker)
@@ -174,6 +205,31 @@ plot_elliptic_envelope <- function(
           segment.color = "gray60"
         )
     }
+  }
+
+
+  # Add axis formatting
+  # x_as_percent: transforms data (x100) AND adds % with +/- signs
+  # x_pct_labels: just adds % to existing values (no transformation)
+  # y_pct_labels: just adds % to existing values
+  if (x_as_percent) {
+    p <- p +
+      ggplot2::scale_x_continuous(
+        labels = function(x) paste0(ifelse(x > 0, "+", ""), x, "%"),
+        breaks = seq(-200, 400, by = 20)
+      )
+  } else if (x_pct_labels) {
+    p <- p +
+      ggplot2::scale_x_continuous(
+        labels = function(x) paste0(x, "%")
+      )
+  }
+
+  if (y_pct_labels) {
+    p <- p +
+      ggplot2::scale_y_continuous(
+        labels = function(y) paste0(y, "%")
+      )
   }
 
   p

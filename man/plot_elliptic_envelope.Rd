@@ -16,7 +16,14 @@ plot_elliptic_envelope(
   x_label = x_col,
   y_label = y_col,
   subtitle = NULL,
-  show_outlier_labels = TRUE
+  show_outlier_labels = TRUE,
+  x_as_percent = FALSE,
+  x_pct_labels = FALSE,
+  y_pct_labels = FALSE,
+  n_sector_stocks = NULL,
+  n_industry_stocks = NULL,
+  sector_name = "Sector",
+  industry_name = "Industry"
 )
 }
 \arguments{
@@ -43,6 +50,20 @@ plot_elliptic_envelope(
 \item{subtitle}{Optional subtitle text (e.g., for disclaimers)}
 
 \item{show_outlier_labels}{Whether to show ticker labels for outliers (default: TRUE)}
+
+\item{x_as_percent}{Whether to transform x-axis as percentage (multiplies by 100 and adds \%)}
+
+\item{x_pct_labels}{Whether to add \% to x-axis labels (no transformation, for data already in \%)}
+
+\item{y_pct_labels}{Whether to add \% to y-axis labels (no transformation, for data already in \%)}
+
+\item{n_sector_stocks}{Number of stocks in sector for caption}
+
+\item{n_industry_stocks}{Number of stocks in industry for caption}
+
+\item{sector_name}{Sector name for caption}
+
+\item{industry_name}{Industry name for caption}
 }
 \value{
 A ggplot2 object

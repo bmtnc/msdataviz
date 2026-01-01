@@ -94,6 +94,8 @@ render_price_report <- function(
       industry_name = report_data$industry_name,
       n_sector_stocks = report_data$n_sector_stocks,
       n_industry_stocks = report_data$n_industry_stocks,
+      sector_median_drawdown = report_data$sector_median_drawdown,
+      industry_median_drawdown = report_data$industry_median_drawdown,
       valuation_data = valuation_result$valuation_data,
       valuation_metric_name = valuation_result$metric_name,
       valuation_n_sector_stocks = valuation_result$n_sector_stocks,

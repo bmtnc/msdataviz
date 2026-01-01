@@ -104,7 +104,7 @@ prepare_valuation_data <- function(
     industry_name = industry_name,
     n_sector_stocks = length(sector_tickers),
     n_industry_stocks = length(industry_tickers),
-    metric_name = "EV to NOPAT (per share)"
+    metric_name = "EV to NOPAT"
   )
 }
 

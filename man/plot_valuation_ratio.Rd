@@ -7,7 +7,7 @@
 plot_valuation_ratio(
   data,
   ticker,
-  metric_name = "EV to NOPAT (per share)",
+  metric_name = "EV to NOPAT",
   sector_name = "Sector",
   industry_name = "Industry",
   n_sector_stocks = NULL,

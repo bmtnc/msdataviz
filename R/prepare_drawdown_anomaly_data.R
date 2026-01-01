@@ -1,7 +1,7 @@
 #' Prepare Drawdown Anomaly Data
 #'
 #' Prepares cross-sectional data for drawdown anomaly detection.
-#' Calculates current drawdown and TTM return for all tickers in sector.
+#' Calculates drawdown from trailing 52-week high and TTM return for all tickers in sector.
 #'
 #' @param ticker Target ticker symbol
 #' @param artifacts Optional pre-loaded artifacts list
@@ -38,28 +38,30 @@ prepare_drawdown_anomaly_data <- function(
   industry_name <- get_ticker_industry(ticker, ttm_data)
   sector_tickers <- get_sector_tickers(sector_name, ttm_data)
 
-  # Get latest price and calculate cumulative high for each ticker
+  # Get latest price and calculate 52-week high for each ticker
   latest_date <- max(price_data$date)
   one_year_ago <- latest_date - 365
 
-  # Calculate current drawdown and TTM return for each ticker
-  drawdown_data <- price_data %>%
+  # Filter to trailing 52 weeks and calculate 52-week high per ticker
+  trailing_52w_data <- price_data %>%
     dplyr::filter(ticker %in% sector_tickers) %>%
     dplyr::filter(!is.na(adjusted_close)) %>%
-    dplyr::arrange(ticker, date) %>%
+    dplyr::filter(date >= one_year_ago) %>%
     dplyr::group_by(ticker) %>%
     dplyr::mutate(
-      cumulative_max = cummax(adjusted_close),
-      drawdown = (adjusted_close / cumulative_max) - 1
+      high_52w = max(adjusted_close, na.rm = TRUE)
     ) %>%
     dplyr::ungroup()
 
-  # Get latest drawdown for each ticker
-  latest_drawdown <- drawdown_data %>%
+  # Get latest price and 52-week drawdown for each ticker
+  latest_drawdown <- trailing_52w_data %>%
     dplyr::group_by(ticker) %>%
     dplyr::filter(date == max(date)) %>%
     dplyr::ungroup() %>%
-    dplyr::select(ticker, latest_drawdown = drawdown, latest_price = adjusted_close)
+    dplyr::mutate(
+      latest_drawdown = (adjusted_close / high_52w) - 1
+    ) %>%
+    dplyr::select(ticker, latest_drawdown, latest_price = adjusted_close)
 
   # Get price from 1 year ago for each ticker
   year_ago_prices <- price_data %>%

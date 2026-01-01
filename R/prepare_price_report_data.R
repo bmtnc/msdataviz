@@ -96,12 +96,31 @@ prepare_price_report_data <- function(
       by = "date"
     )
 
+  # Calculate median current drawdown across sector and industry stocks
+  latest_date <- max(filtered_prices$date, na.rm = TRUE)
+
+  sector_current_drawdowns <- calculate_current_drawdowns(
+    filtered_prices,
+    sector_tickers,
+    latest_date
+  )
+  industry_current_drawdowns <- calculate_current_drawdowns(
+    filtered_prices,
+    industry_tickers,
+    latest_date
+  )
+
+  sector_median_drawdown <- median(sector_current_drawdowns, na.rm = TRUE)
+  industry_median_drawdown <- median(industry_current_drawdowns, na.rm = TRUE)
+
   list(
     ticker_data = ticker_data,
     ticker = ticker,
     sector_name = sector_name,
     industry_name = industry_name,
     n_sector_stocks = length(sector_tickers),
-    n_industry_stocks = length(industry_tickers)
+    n_industry_stocks = length(industry_tickers),
+    sector_median_drawdown = sector_median_drawdown,
+    industry_median_drawdown = industry_median_drawdown
   )
 }

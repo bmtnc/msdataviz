@@ -8,8 +8,10 @@ params:
   industry_name: "Industry"
   n_sector_stocks: 0
   n_industry_stocks: 0
+  sector_median_drawdown: NULL
+  industry_median_drawdown: NULL
   valuation_data: NULL
-  valuation_metric_name: "EV to NOPAT (per share)"
+  valuation_metric_name: "EV to NOPAT"
   valuation_n_sector_stocks: 0
   valuation_n_industry_stocks: 0
   roic_data: NULL
@@ -40,7 +42,16 @@ plot_cumulative_return(
 ## Drawdown from Highs
 
 ```{r drawdown-chart, fig.width=10, fig.height=6}
-plot_drawdown(params$ticker_data, params$ticker) %>%
+plot_drawdown(
+  params$ticker_data,
+  params$ticker,
+  sector_median_drawdown = params$sector_median_drawdown,
+  industry_median_drawdown = params$industry_median_drawdown,
+  sector_name = params$sector_name,
+  industry_name = params$industry_name,
+  n_sector_stocks = params$n_sector_stocks,
+  n_industry_stocks = params$n_industry_stocks
+) %>%
   add_data_callout(label_fn = scales::percent)
 ```
 
@@ -71,38 +82,9 @@ plot_roic(
 )
 ```
 
-## Valuation Anomaly Detection
+## Anomaly Detection
 
-```{r anomaly-ev-nopat, fig.width=10, fig.height=8}
-# Fit elliptic envelope for EV/NOPAT
-envelope_ev <- fit_elliptic_envelope(
-  params$anomaly_data$ev_nopat_yoy_change,
-  params$anomaly_data$ev_nopat,
-  contamination = 0.1
-)
-
-# Create plot
-plot_elliptic_envelope(
-  data = params$anomaly_data,
-  x_col = "ev_nopat_yoy_change",
-  y_col = "ev_nopat",
-  ticker_col = "ticker",
-  group_col = "industry",
-  target_ticker = params$ticker,
-  target_group = params$industry_name,
-  envelope_fit = envelope_ev,
-  x_label = "YoY Change in EV/NOPAT",
-  y_label = "EV to NOPAT (per share)",
-  subtitle = paste0(
-    "n = ", nrow(params$anomaly_data), " stocks in ", params$sector_name,
-    " sector; EV/NOPAT clipped at 100x"
-  )
-)
-```
-
-## ROIC vs Valuation
-
-```{r anomaly-roic, fig.width=10, fig.height=8}
+```{r anomaly-plots, fig.width=14, fig.height=7}
 # Fit elliptic envelope for ROIC vs EV/NOPAT
 envelope_roic <- fit_elliptic_envelope(
   params$anomaly_data$roic_pct,
@@ -110,8 +92,8 @@ envelope_roic <- fit_elliptic_envelope(
   contamination = 0.1
 )
 
-# Create plot
-plot_elliptic_envelope(
+# Create ROIC vs Valuation plot
+p_roic <- plot_elliptic_envelope(
   data = params$anomaly_data,
   x_col = "roic_pct",
   y_col = "ev_nopat",
@@ -120,17 +102,15 @@ plot_elliptic_envelope(
   target_ticker = params$ticker,
   target_group = params$industry_name,
   envelope_fit = envelope_roic,
-  x_label = "ROIC (%)",
-  y_label = "EV to NOPAT (per share)",
-  subtitle = paste0(
-    "n = ", nrow(params$anomaly_data), " stocks in ", params$sector_name, " sector"
-  )
+  x_label = "ROIC",
+  y_label = "EV to NOPAT",
+  x_pct_labels = TRUE,
+  n_sector_stocks = params$valuation_n_sector_stocks,
+  n_industry_stocks = params$valuation_n_industry_stocks,
+  sector_name = params$sector_name,
+  industry_name = params$industry_name
 )
-```
 
-## Price Momentum Anomaly Detection
-
-```{r anomaly-drawdown, fig.width=10, fig.height=8}
 # Fit elliptic envelope for drawdown vs TTM return
 envelope_dd <- fit_elliptic_envelope(
   params$drawdown_anomaly_data$ttm_return,
@@ -138,8 +118,8 @@ envelope_dd <- fit_elliptic_envelope(
   contamination = 0.1
 )
 
-# Create plot
-plot_elliptic_envelope(
+# Create Price Momentum plot
+p_momentum <- plot_elliptic_envelope(
   data = params$drawdown_anomaly_data,
   x_col = "ttm_return",
   y_col = "drawdown_pct",
@@ -149,9 +129,15 @@ plot_elliptic_envelope(
   target_group = params$industry_name,
   envelope_fit = envelope_dd,
   x_label = "TTM Return",
-  y_label = "Current Drawdown (%)",
-  subtitle = paste0(
-    "n = ", nrow(params$drawdown_anomaly_data), " stocks in ", params$sector_name, " sector"
-  )
+  y_label = "Drawdown from 52w High",
+  x_as_percent = TRUE,
+  y_pct_labels = TRUE,
+  n_sector_stocks = params$n_sector_stocks,
+  n_industry_stocks = params$n_industry_stocks,
+  sector_name = params$sector_name,
+  industry_name = params$industry_name
 )
+
+# Arrange side by side
+gridExtra::grid.arrange(p_roic, p_momentum, ncol = 2)
 ```

@@ -31,5 +31,5 @@ List with: data (data frame), ticker, sector_name, industry_name
 }
 \description{
 Prepares cross-sectional data for drawdown anomaly detection.
-Calculates current drawdown and TTM return for all tickers in sector.
+Calculates drawdown from trailing 52-week high and TTM return for all tickers in sector.
 }
