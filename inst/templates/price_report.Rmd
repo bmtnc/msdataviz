@@ -55,10 +55,10 @@ plot_drawdown(
   add_data_callout(label_fn = scales::percent)
 ```
 
-## Valuation
+## Valuation and ROIC
 
-```{r valuation-chart, fig.width=10, fig.height=6}
-plot_valuation_ratio(
+```{r valuation-roic-charts, fig.width=14, fig.height=6}
+p_valuation <- plot_valuation_ratio(
   params$valuation_data,
   params$ticker,
   metric_name = params$valuation_metric_name,
@@ -67,12 +67,8 @@ plot_valuation_ratio(
   n_sector_stocks = params$valuation_n_sector_stocks,
   n_industry_stocks = params$valuation_n_industry_stocks
 )
-```
 
-## Return on Invested Capital
-
-```{r roic-chart, fig.width=10, fig.height=6}
-plot_roic(
+p_roic <- plot_roic(
   params$roic_data,
   params$ticker,
   sector_name = params$sector_name,
@@ -80,20 +76,20 @@ plot_roic(
   n_sector_stocks = params$roic_n_sector_stocks,
   n_industry_stocks = params$roic_n_industry_stocks
 )
+
+gridExtra::grid.arrange(p_valuation, p_roic, ncol = 2)
 ```
 
-## Anomaly Detection
+## ROIC vs Valuation
 
-```{r anomaly-plots, fig.width=14, fig.height=7}
-# Fit elliptic envelope for ROIC vs EV/NOPAT
+```{r anomaly-roic, fig.width=10, fig.height=8}
 envelope_roic <- fit_elliptic_envelope(
   params$anomaly_data$roic_pct,
   params$anomaly_data$ev_nopat,
   contamination = 0.1
 )
 
-# Create ROIC vs Valuation plot
-p_roic <- plot_elliptic_envelope(
+plot_elliptic_envelope(
   data = params$anomaly_data,
   x_col = "roic_pct",
   y_col = "ev_nopat",
@@ -110,16 +106,18 @@ p_roic <- plot_elliptic_envelope(
   sector_name = params$sector_name,
   industry_name = params$industry_name
 )
+```
 
-# Fit elliptic envelope for drawdown vs TTM return
+## Price Momentum Anomaly Detection
+
+```{r anomaly-drawdown, fig.width=10, fig.height=8}
 envelope_dd <- fit_elliptic_envelope(
   params$drawdown_anomaly_data$ttm_return,
   params$drawdown_anomaly_data$drawdown_pct,
   contamination = 0.1
 )
 
-# Create Price Momentum plot
-p_momentum <- plot_elliptic_envelope(
+plot_elliptic_envelope(
   data = params$drawdown_anomaly_data,
   x_col = "ttm_return",
   y_col = "drawdown_pct",
@@ -137,7 +135,4 @@ p_momentum <- plot_elliptic_envelope(
   sector_name = params$sector_name,
   industry_name = params$industry_name
 )
-
-# Arrange side by side
-gridExtra::grid.arrange(p_roic, p_momentum, ncol = 2)
 ```
