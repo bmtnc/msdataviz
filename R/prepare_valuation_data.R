@@ -1,9 +1,10 @@
 #' Prepare EV/NOPAT Valuation Data
 #'
-#' Prepares daily EV/NOPAT ratio data for a ticker with sector average.
+#' Prepares daily EV/NOPAT ratio data for a ticker with reference group median.
 #' Uses forward-filled quarterly fundamentals joined to daily prices.
 #'
 #' @param ticker Character string for the ticker symbol
+#' @param reference_level Reference group level: "sector" or "industry" (default: "sector")
 #' @param start_date Start date for filtering (default: 2017-12-31)
 #' @param end_date End date for filtering (default: NULL)
 #' @param artifacts Optional pre-loaded artifacts list
@@ -11,10 +12,11 @@
 #' @param max_cache_age_days Maximum cache age before refresh
 #' @param s3_bucket S3 bucket name
 #' @param aws_region AWS region
-#' @return List with: valuation_data, ticker, sector_name, metric_name
+#' @return List with: valuation_data, ticker, reference_name, n_reference_stocks, metric_name
 #' @export
 prepare_valuation_data <- function(
     ticker,
+    reference_level = c("sector", "industry"),
     start_date = as.Date("2017-12-31"),
     end_date = NULL,
     artifacts = NULL,
@@ -24,6 +26,7 @@ prepare_valuation_data <- function(
     aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
+  reference_level <- match.arg(reference_level)
 
   if (is.null(artifacts)) {
     artifacts <- get_cached_artifacts(
@@ -37,8 +40,14 @@ prepare_valuation_data <- function(
   price_data <- artifacts$price_data
   ttm_data <- artifacts$ttm_data
 
-  sector_name <- get_ticker_sector(ticker, ttm_data)
-  sector_tickers <- get_sector_tickers(sector_name, ttm_data)
+  # Get reference group info based on level
+  if (reference_level == "sector") {
+    reference_name <- get_ticker_sector(ticker, ttm_data)
+    reference_tickers <- get_sector_tickers(reference_name, ttm_data)
+  } else {
+    reference_name <- get_ticker_industry(ticker, ttm_data)
+    reference_tickers <- get_industry_tickers(reference_name, ttm_data)
+  }
 
 	# Select columns needed for EV/NOPAT calculation
   ttm_subset <- ttm_data %>%
@@ -79,11 +88,11 @@ prepare_valuation_data <- function(
   }
 
   ticker_valuation <- build_daily_ev_nopat(filtered_prices, ttm_subset, ticker)
-  sector_valuation <- calculate_sector_ev_nopat(filtered_prices, ttm_subset, sector_tickers)
+  reference_valuation <- calculate_sector_ev_nopat(filtered_prices, ttm_subset, reference_tickers)
 
   valuation_data <- ticker_valuation %>%
     dplyr::left_join(
-      sector_valuation %>%
+      reference_valuation %>%
         dplyr::select(date, sector_valuation_ratio),
       by = "date"
     )
@@ -91,8 +100,9 @@ prepare_valuation_data <- function(
   list(
     valuation_data = valuation_data,
     ticker = ticker,
-    sector_name = sector_name,
-    metric_name = "EV/NOPAT"
+    reference_name = reference_name,
+    n_reference_stocks = length(reference_tickers),
+    metric_name = "EV to NOPAT (per share)"
   )
 }
 
@@ -197,17 +207,14 @@ calculate_sector_ev_nopat <- function(price_data, ttm_data, sector_tickers) {
   }) %>%
     dplyr::bind_rows()
 
+  # Calculate per-ticker valuation ratio, then take median across tickers
   daily_fundamentals %>%
-    dplyr::filter(!is.na(total_ev) & !is.na(total_nopat)) %>%
-    dplyr::filter(total_nopat > 0) %>%
+    dplyr::filter(!is.na(ev_per_share) & !is.na(nopat_per_share)) %>%
+    dplyr::filter(nopat_per_share > 0) %>%
+    dplyr::mutate(ticker_valuation_ratio = ev_per_share / nopat_per_share) %>%
     dplyr::group_by(date) %>%
     dplyr::summarize(
-      total_ev = sum(total_ev, na.rm = TRUE),
-      total_nopat = sum(total_nopat, na.rm = TRUE),
+      sector_valuation_ratio = median(ticker_valuation_ratio, na.rm = TRUE),
       .groups = "drop"
-    ) %>%
-    dplyr::mutate(
-      sector_valuation_ratio = total_ev / total_nopat
-    ) %>%
-    dplyr::select(date, sector_valuation_ratio)
+    )
 }

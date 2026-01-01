@@ -1,8 +1,9 @@
 #' Render Price Report for a Ticker
 #'
-#' Fetches data from S3 and renders an HTML price report with sector base rates.
+#' Fetches data from S3 and renders an HTML price report with reference group base rates.
 #'
 #' @param ticker Character string for the ticker symbol
+#' @param reference_level Reference group level: "sector" or "industry" (default: "sector")
 #' @param output_dir Directory for output file (default: current directory)
 #' @param start_date Start date for filtering data (default: 2017-12-31)
 #' @param end_date End date for filtering data (default: NULL, no upper bound)
@@ -13,6 +14,7 @@
 #' @export
 render_price_report <- function(
     ticker,
+    reference_level = c("sector", "industry"),
     output_dir = "output",
     start_date = as.Date("2017-12-31"),
     end_date = NULL,
@@ -20,8 +22,9 @@ render_price_report <- function(
     aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
+  reference_level <- match.arg(reference_level)
 
-  # Load artifacts once for both data preps
+  # Load artifacts once for all data preps
   artifacts <- get_cached_artifacts(
     s3_bucket = s3_bucket,
     aws_region = aws_region
@@ -29,6 +32,7 @@ render_price_report <- function(
 
   report_data <- prepare_price_report_data(
     ticker = ticker,
+    reference_level = reference_level,
     start_date = start_date,
     end_date = end_date,
     artifacts = artifacts,
@@ -38,8 +42,16 @@ render_price_report <- function(
 
   valuation_result <- prepare_valuation_data(
     ticker = ticker,
+    reference_level = reference_level,
     start_date = start_date,
     end_date = end_date,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
+
+  anomaly_result <- prepare_valuation_anomaly_data(
+    ticker = ticker,
     artifacts = artifacts,
     s3_bucket = s3_bucket,
     aws_region = aws_region
@@ -67,10 +79,14 @@ render_price_report <- function(
     params = list(
       ticker = report_data$ticker,
       ticker_data = report_data$ticker_data,
-      sector_name = report_data$sector_name,
-      n_sector_stocks = report_data$n_sector_stocks,
+      reference_name = report_data$reference_name,
+      n_reference_stocks = report_data$n_reference_stocks,
       valuation_data = valuation_result$valuation_data,
-      valuation_metric_name = valuation_result$metric_name
+      valuation_metric_name = valuation_result$metric_name,
+      valuation_n_stocks = valuation_result$n_reference_stocks,
+      anomaly_data = anomaly_result$data,
+      sector_name = anomaly_result$sector_name,
+      industry_name = anomaly_result$industry_name
     ),
     quiet = TRUE
   )

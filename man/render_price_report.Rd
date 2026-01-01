@@ -6,10 +6,10 @@
 \usage{
 render_price_report(
   ticker,
+  reference_level = c("sector", "industry"),
   output_dir = "output",
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
-  valuation_metric = "netIncome_ttm",
   s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
   aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 )
@@ -17,13 +17,13 @@ render_price_report(
 \arguments{
 \item{ticker}{Character string for the ticker symbol}
 
+\item{reference_level}{Reference group level: "sector" or "industry" (default: "sector")}
+
 \item{output_dir}{Directory for output file (default: current directory)}
 
 \item{start_date}{Start date for filtering data (default: 2017-12-31)}
 
 \item{end_date}{End date for filtering data (default: NULL, no upper bound)}
-
-\item{valuation_metric}{Fundamental metric for valuation chart (default: "netIncome_ttm")}
 
 \item{s3_bucket}{S3 bucket name}
 
@@ -33,5 +33,5 @@ render_price_report(
 Path to the rendered HTML file
 }
 \description{
-Fetches data from S3 and renders an HTML price report with sector base rates.
+Fetches data from S3 and renders an HTML price report with reference group base rates.
 }

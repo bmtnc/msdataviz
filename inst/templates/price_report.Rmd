@@ -4,10 +4,14 @@ output: html_document
 params:
   ticker: "TICKER"
   ticker_data: NULL
-  sector_name: "Sector"
-  n_sector_stocks: 0
+  reference_name: "Sector"
+  n_reference_stocks: 0
   valuation_data: NULL
-  valuation_metric_name: "P/E"
+  valuation_metric_name: "EV to NOPAT (per share)"
+  valuation_n_stocks: 0
+  anomaly_data: NULL
+  sector_name: "Sector"
+  industry_name: "Industry"
 ---
 
 ```{r setup, include=FALSE}
@@ -21,7 +25,8 @@ set_ggplot_theme()
 plot_cumulative_return(
   params$ticker_data,
   params$ticker,
-  sector_name = params$sector_name
+  reference_name = params$reference_name,
+  n_reference_stocks = params$n_reference_stocks
 )
 ```
 
@@ -39,6 +44,36 @@ plot_valuation_ratio(
   params$valuation_data,
   params$ticker,
   metric_name = params$valuation_metric_name,
-  sector_name = params$sector_name
+  reference_name = params$reference_name,
+  n_reference_stocks = params$valuation_n_stocks
+)
+```
+
+## Valuation Anomaly Detection
+
+```{r anomaly-chart, fig.width=10, fig.height=8}
+# Fit elliptic envelope
+envelope <- fit_elliptic_envelope(
+  params$anomaly_data$ev_nopat_yoy_change,
+  params$anomaly_data$ev_nopat,
+  contamination = 0.1
+)
+
+# Create plot
+plot_elliptic_envelope(
+  data = params$anomaly_data,
+  x_col = "ev_nopat_yoy_change",
+  y_col = "ev_nopat",
+  ticker_col = "ticker",
+  group_col = "industry",
+  target_ticker = params$ticker,
+  target_group = params$industry_name,
+  envelope_fit = envelope,
+  x_label = "YoY Change in EV/NOPAT",
+  y_label = "EV to NOPAT (per share)",
+  subtitle = paste0(
+    "n = ", nrow(params$anomaly_data), " stocks in ", params$sector_name,
+    " sector; EV/NOPAT clipped at 100x"
+  )
 )
 ```

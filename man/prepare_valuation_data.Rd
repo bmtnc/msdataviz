@@ -2,11 +2,11 @@
 % Please edit documentation in R/prepare_valuation_data.R
 \name{prepare_valuation_data}
 \alias{prepare_valuation_data}
-\title{Prepare Valuation Ratio Data}
+\title{Prepare EV/NOPAT Valuation Data}
 \usage{
 prepare_valuation_data(
   ticker,
-  metric = "netIncome_ttm",
+  reference_level = c("sector", "industry"),
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
   artifacts = NULL,
@@ -19,7 +19,7 @@ prepare_valuation_data(
 \arguments{
 \item{ticker}{Character string for the ticker symbol}
 
-\item{metric}{Character: fundamental metric column (default: "netIncome_ttm" for P/E)}
+\item{reference_level}{Reference group level: "sector" or "industry" (default: "sector")}
 
 \item{start_date}{Start date for filtering (default: 2017-12-31)}
 
@@ -36,9 +36,9 @@ prepare_valuation_data(
 \item{aws_region}{AWS region}
 }
 \value{
-List with: valuation_data, ticker, sector_name, metric_name
+List with: valuation_data, ticker, reference_name, n_reference_stocks, metric_name
 }
 \description{
-Prepares daily valuation ratio data for a ticker with sector average.
+Prepares daily EV/NOPAT ratio data for a ticker with reference group median.
 Uses forward-filled quarterly fundamentals joined to daily prices.
 }

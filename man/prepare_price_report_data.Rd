@@ -6,6 +6,7 @@
 \usage{
 prepare_price_report_data(
   ticker,
+  reference_level = c("sector", "industry"),
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
   artifacts = NULL,
@@ -17,6 +18,8 @@ prepare_price_report_data(
 }
 \arguments{
 \item{ticker}{Character string for the ticker symbol}
+
+\item{reference_level}{Reference group level: "sector" or "industry" (default: "sector")}
 
 \item{start_date}{Start date for filtering (default: 2017-12-31)}
 
@@ -33,8 +36,8 @@ prepare_price_report_data(
 \item{aws_region}{AWS region}
 }
 \value{
-List with: ticker_data, sector_data, ticker, sector_name
+List with: ticker_data, reference_data, ticker, reference_name, n_reference_stocks
 }
 \description{
-Loads artifacts (with caching) and prepares data with sector base rates.
+Loads artifacts (with caching) and prepares data with reference group base rates.
 }

@@ -4,20 +4,28 @@
 \alias{plot_valuation_ratio}
 \title{Create Valuation Ratio Chart}
 \usage{
-plot_valuation_ratio(data, ticker, metric_name = "P/E", sector_name = "Sector")
+plot_valuation_ratio(
+  data,
+  ticker,
+  metric_name = "EV to NOPAT (per share)",
+  reference_name = "Sector",
+  n_reference_stocks = NULL
+)
 }
 \arguments{
 \item{data}{Data frame with columns: date, valuation_ratio, sector_valuation_ratio}
 
 \item{ticker}{Character string for the ticker symbol}
 
-\item{metric_name}{Metric name for labeling (e.g., "P/Net Income")}
+\item{metric_name}{Metric name for y-axis label}
 
-\item{sector_name}{Sector name for legend}
+\item{reference_name}{Reference group name for legend}
+
+\item{n_reference_stocks}{Number of stocks in reference group for subtitle}
 }
 \value{
 A ggplot2 object
 }
 \description{
-Creates a line chart showing valuation ratio with sector reference.
+Creates a line chart showing valuation ratio with reference group median.
 }

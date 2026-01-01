@@ -4,19 +4,26 @@
 \alias{plot_cumulative_return}
 \title{Create Cumulative Return Chart}
 \usage{
-plot_cumulative_return(data, ticker, sector_name = "Sector")
+plot_cumulative_return(
+  data,
+  ticker,
+  reference_name = "Sector",
+  n_reference_stocks = NULL
+)
 }
 \arguments{
 \item{data}{Data frame with columns: date, cumulative_return, and optionally sector_cumulative_return}
 
 \item{ticker}{Character string for the ticker symbol}
 
-\item{sector_name}{Optional sector name for legend (default: "Sector")}
+\item{reference_name}{Reference group name for legend (default: "Sector")}
+
+\item{n_reference_stocks}{Number of stocks in reference group for subtitle}
 }
 \value{
 A ggplot2 object
 }
 \description{
-Creates a line chart showing cumulative returns with optional sector overlay.
-Includes data callouts for both lines when sector data is present.
+Creates a line chart showing cumulative returns with optional reference overlay.
+Includes data callouts for both lines when reference data is present.
 }
