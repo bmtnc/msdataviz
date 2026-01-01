@@ -53,7 +53,7 @@ prepare_valuation_anomaly_data <- function(
     dplyr::filter(fiscalDateEnding == max(fiscalDateEnding)) %>%
     dplyr::ungroup()
 
-  # Calculate per-share metrics for EV/NOPAT
+  # Calculate per-share metrics for EV/NOPAT and ROIC
   latest_ttm <- latest_ttm %>%
     dplyr::mutate(
       ebit_ttm_per_share = ebit_ttm / commonStockSharesOutstanding,
@@ -63,16 +63,23 @@ prepare_valuation_anomaly_data <- function(
       lease_obligations_per_share = capitalLeaseObligations / commonStockSharesOutstanding,
       cash_st_investments_per_share = cashAndShortTermInvestments / commonStockSharesOutstanding,
       lt_investments_per_share = longTermInvestments / commonStockSharesOutstanding,
+      equity_per_share = totalShareholderEquity / commonStockSharesOutstanding,
       nopat_per_share = avpipeline:::calculate_nopat_per_share(
         ebit_ttm_per_share,
         dep_amort_ttm_per_share,
         depreciation_ttm_per_share
-      )
+      ),
+      invested_capital_per_share = avpipeline:::calculate_invested_capital_per_share(
+        debt_total_per_share,
+        lease_obligations_per_share,
+        equity_per_share
+      ),
+      roic = nopat_per_share / invested_capital_per_share
     ) %>%
     dplyr::select(
       ticker, sector, industry, fiscalDateEnding,
       nopat_per_share, debt_total_per_share, lease_obligations_per_share,
-      cash_st_investments_per_share, lt_investments_per_share
+      cash_st_investments_per_share, lt_investments_per_share, invested_capital_per_share, roic
     )
 
   # Join price to TTM and calculate EV/NOPAT
@@ -147,14 +154,17 @@ prepare_valuation_anomaly_data <- function(
 
   # Join current and year-ago, calculate YoY change
   # Clip EV/NOPAT at 100 to handle extreme outliers
- anomaly_data <- current_data %>%
+  # ROIC is expressed as a percentage (multiply by 100)
+  anomaly_data <- current_data %>%
     dplyr::inner_join(year_ago_data, by = "ticker") %>%
     dplyr::mutate(
       ev_nopat_raw = ev_nopat,
       ev_nopat = pmin(ev_nopat, 100),
-      ev_nopat_yoy_change = (ev_nopat_raw / ev_nopat_1y) - 1
+      ev_nopat_yoy_change = (ev_nopat_raw / ev_nopat_1y) - 1,
+      roic_pct = roic * 100
     ) %>%
-    dplyr::select(ticker, sector, industry, ev_nopat, ev_nopat_yoy_change)
+    dplyr::filter(!is.na(roic_pct) & is.finite(roic_pct)) %>%
+    dplyr::select(ticker, sector, industry, ev_nopat, ev_nopat_yoy_change, roic_pct)
 
   list(
     data = anomaly_data,

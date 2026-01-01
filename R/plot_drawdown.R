@@ -20,14 +20,17 @@ plot_drawdown <- function(data, ticker) {
       dplyr::mutate(drawdown = drawdown_from_high(price))
   }
 
+  # Darker sunset orange color
+  sunset_orange <- "#D35400"
+
   plot_data %>%
     ggplot2::ggplot(ggplot2::aes(x = date, y = drawdown)) +
-    ggplot2::geom_area(fill = "#CC5500", alpha = 0.7) +
-    ggplot2::geom_line(color = "#CC5500", linewidth = 0.5) +
+    ggplot2::geom_area(fill = sunset_orange, alpha = 0.7) +
+    ggplot2::geom_line(color = sunset_orange, linewidth = 0.5) +
     ggplot2::scale_y_continuous(labels = scales::percent_format()) +
     ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
     ggplot2::labs(
-      title = paste0(ticker, " Drawdown from Highs"),
+      title = NULL,
       x = NULL,
       y = "Drawdown"
     )

@@ -1,9 +1,8 @@
 #' Prepare Data for Price Report
 #'
-#' Loads artifacts (with caching) and prepares data with reference group base rates.
+#' Loads artifacts (with caching) and prepares data with sector and industry base rates.
 #'
 #' @param ticker Character string for the ticker symbol
-#' @param reference_level Reference group level: "sector" or "industry" (default: "sector")
 #' @param start_date Start date for filtering (default: 2017-12-31)
 #' @param end_date End date for filtering (default: NULL, no upper bound)
 #' @param artifacts Optional pre-loaded artifacts list (from get_cached_artifacts)
@@ -11,11 +10,10 @@
 #' @param max_cache_age_days Maximum cache age before refresh (default: 1)
 #' @param s3_bucket S3 bucket name
 #' @param aws_region AWS region
-#' @return List with: ticker_data, reference_data, ticker, reference_name, n_reference_stocks
+#' @return List with: ticker_data, ticker, sector_name, industry_name, n_sector_stocks, n_industry_stocks
 #' @export
 prepare_price_report_data <- function(
     ticker,
-    reference_level = c("sector", "industry"),
     start_date = as.Date("2017-12-31"),
     end_date = NULL,
     artifacts = NULL,
@@ -25,7 +23,6 @@ prepare_price_report_data <- function(
     aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
-  reference_level <- match.arg(reference_level)
 
   if (is.null(artifacts)) {
     artifacts <- get_cached_artifacts(
@@ -39,14 +36,11 @@ prepare_price_report_data <- function(
   price_data <- artifacts$price_data
   ttm_data <- artifacts$ttm_data
 
-  # Get reference group info based on level
-  if (reference_level == "sector") {
-    reference_name <- get_ticker_sector(ticker, ttm_data)
-    reference_tickers <- get_sector_tickers(reference_name, ttm_data)
-  } else {
-    reference_name <- get_ticker_industry(ticker, ttm_data)
-    reference_tickers <- get_industry_tickers(reference_name, ttm_data)
-  }
+  # Get sector and industry info
+  sector_name <- get_ticker_sector(ticker, ttm_data)
+  industry_name <- get_ticker_industry(ticker, ttm_data)
+  sector_tickers <- get_sector_tickers(sector_name, ttm_data)
+  industry_tickers <- get_industry_tickers(industry_name, ttm_data)
 
   # Filter price data to date range
   filtered_prices <- price_data %>%
@@ -57,10 +51,16 @@ prepare_price_report_data <- function(
       dplyr::filter(date <= end_date)
   }
 
-  # Calculate reference group index
-  reference_data <- calculate_sector_index(
+  # Calculate sector index
+  sector_data <- calculate_sector_index(
     price_data = filtered_prices,
-    sector_tickers = reference_tickers
+    sector_tickers = sector_tickers
+  )
+
+  # Calculate industry index
+  industry_data <- calculate_sector_index(
+    price_data = filtered_prices,
+    sector_tickers = industry_tickers
   )
 
   # Prepare ticker data
@@ -79,19 +79,29 @@ prepare_price_report_data <- function(
     stop("No data returned for ticker '", ticker, "'")
   }
 
-  # Join reference data to ticker data
+  # Join sector data to ticker data
   ticker_data <- ticker_data %>%
     dplyr::left_join(
-      reference_data %>%
+      sector_data %>%
         dplyr::select(date, sector_cumulative_return, sector_drawdown),
+      by = "date"
+    ) %>%
+    dplyr::left_join(
+      industry_data %>%
+        dplyr::select(
+          date,
+          industry_cumulative_return = sector_cumulative_return,
+          industry_drawdown = sector_drawdown
+        ),
       by = "date"
     )
 
   list(
     ticker_data = ticker_data,
-    reference_data = reference_data,
     ticker = ticker,
-    reference_name = reference_name,
-    n_reference_stocks = length(reference_tickers)
+    sector_name = sector_name,
+    industry_name = industry_name,
+    n_sector_stocks = length(sector_tickers),
+    n_industry_stocks = length(industry_tickers)
   )
 }

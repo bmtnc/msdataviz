@@ -4,7 +4,7 @@
 \alias{fit_elliptic_envelope}
 \title{Fit Elliptic Envelope for Outlier Detection}
 \usage{
-fit_elliptic_envelope(x, y, contamination = 0.1)
+fit_elliptic_envelope(x, y, contamination = 0.1, winsorize_pct = 0.02)
 }
 \arguments{
 \item{x}{Numeric vector for x-axis values}
@@ -12,11 +12,14 @@ fit_elliptic_envelope(x, y, contamination = 0.1)
 \item{y}{Numeric vector for y-axis values}
 
 \item{contamination}{Expected proportion of outliers (default: 0.1)}
+
+\item{winsorize_pct}{Percentile for winsorization (default: 0.02 for 2nd/98th)}
 }
 \value{
-List with: center, cov, distances, threshold, is_outlier
+List with: center, cov, distances, threshold, is_outlier, x_winsorized, y_winsorized
 }
 \description{
 Fits an elliptic envelope using robust covariance estimation (Minimum
 Covariance Determinant). Returns Mahalanobis distances and outlier flags.
+Optionally winsorizes data before fitting.
 }

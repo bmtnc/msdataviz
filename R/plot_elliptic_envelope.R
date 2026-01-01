@@ -34,17 +34,26 @@ plot_elliptic_envelope <- function(
 ) {
   avpipeline::validate_non_empty(data, "data")
 
-  # Add envelope results to data
+  # Add envelope results to data, using winsorized values for plotting
   plot_data <- data %>%
     dplyr::mutate(
-      x_val = .data[[x_col]],
-      y_val = .data[[y_col]],
+      x_val = envelope_fit$x_winsorized,
+      y_val = envelope_fit$y_winsorized,
       ticker = .data[[ticker_col]],
       group = .data[[group_col]],
       is_outlier = envelope_fit$is_outlier,
       mahal_dist = envelope_fit$distances
     ) %>%
     dplyr::filter(!is.na(x_val) & !is.na(y_val))
+
+  # Build caption with winsorization note
+  winsorize_pct <- envelope_fit$winsorize_pct * 100
+  winsorize_note <- sprintf("Data winsorized at %.0fth/%.0fth percentiles.", winsorize_pct, 100 - winsorize_pct)
+  full_caption <- if (!is.null(subtitle)) {
+    paste0(subtitle, "\n", winsorize_note)
+  } else {
+    winsorize_note
+  }
 
   # Categorize points
   plot_data <- plot_data %>%
@@ -65,22 +74,24 @@ plot_elliptic_envelope <- function(
     level = 1 - envelope_fit$contamination
   )
 
-  # Define colors
+  # Define colors - distinct colors for industry vs sector peers
+  # Industry peers: darker, more saturated
+  # Sector peers (different industry): lighter, more transparent
   point_colors <- c(
     "target" = "navy",
-    "same_group" = "gray40",
-    "same_group_outlier" = "#CC0000",
-    "other" = "gray80",
-    "other_outlier" = "#FFAAAA"
+    "same_group" = "#2C3E50",           # Dark charcoal for industry peers
+    "same_group_outlier" = "#C0392B",   # Dark red for industry outliers
+    "other" = "#BDC3C7",                # Light gray for sector peers
+    "other_outlier" = "#F5B7B1"         # Light pink for sector outliers
   )
 
-  # Point sizes
+  # Point sizes - industry peers larger
   point_sizes <- c(
-    "target" = 4,
-    "same_group" = 2.5,
-    "same_group_outlier" = 2.5,
-    "other" = 1.5,
-    "other_outlier" = 1.5
+    "target" = 4.5,
+    "same_group" = 3.0,
+    "same_group_outlier" = 3.0,
+    "other" = 1.8,
+    "other_outlier" = 1.8
   )
 
   # Build plot
@@ -93,31 +104,31 @@ plot_elliptic_envelope <- function(
       linetype = "dashed",
       linewidth = 0.5
     ) +
-    # Other sector points (bottom layer) - transparent
+    # Other sector points (bottom layer) - very transparent
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "other"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["other"],
       size = point_sizes["other"],
-      alpha = 0.25
+      alpha = 0.3
     ) +
-    # Other sector outliers - slightly more visible
+    # Other sector outliers - slightly more visible but still faded
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "other_outlier"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["other_outlier"],
       size = point_sizes["other_outlier"],
-      alpha = 0.4
+      alpha = 0.5
     ) +
-    # Same industry points - opaque
+    # Same industry points - fully opaque, dark
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "same_group"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["same_group"],
       size = point_sizes["same_group"],
-      alpha = 0.9
+      alpha = 1.0
     ) +
-    # Same industry outliers - fully opaque
+    # Same industry outliers - fully opaque, dark red
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "same_group_outlier"),
       ggplot2::aes(x = x_val, y = y_val),
@@ -137,7 +148,7 @@ plot_elliptic_envelope <- function(
       title = NULL,
       x = x_label,
       y = y_label,
-      caption = subtitle
+      caption = full_caption
     ) +
     ggplot2::theme(
       plot.caption = ggplot2::element_text(

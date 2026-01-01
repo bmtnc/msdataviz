@@ -4,14 +4,19 @@ output: html_document
 params:
   ticker: "TICKER"
   ticker_data: NULL
-  reference_name: "Sector"
-  n_reference_stocks: 0
-  valuation_data: NULL
-  valuation_metric_name: "EV to NOPAT (per share)"
-  valuation_n_stocks: 0
-  anomaly_data: NULL
   sector_name: "Sector"
   industry_name: "Industry"
+  n_sector_stocks: 0
+  n_industry_stocks: 0
+  valuation_data: NULL
+  valuation_metric_name: "EV to NOPAT (per share)"
+  valuation_n_sector_stocks: 0
+  valuation_n_industry_stocks: 0
+  roic_data: NULL
+  roic_n_sector_stocks: 0
+  roic_n_industry_stocks: 0
+  anomaly_data: NULL
+  drawdown_anomaly_data: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -25,8 +30,10 @@ set_ggplot_theme()
 plot_cumulative_return(
   params$ticker_data,
   params$ticker,
-  reference_name = params$reference_name,
-  n_reference_stocks = params$n_reference_stocks
+  sector_name = params$sector_name,
+  industry_name = params$industry_name,
+  n_sector_stocks = params$n_sector_stocks,
+  n_industry_stocks = params$n_industry_stocks
 )
 ```
 
@@ -44,16 +51,31 @@ plot_valuation_ratio(
   params$valuation_data,
   params$ticker,
   metric_name = params$valuation_metric_name,
-  reference_name = params$reference_name,
-  n_reference_stocks = params$valuation_n_stocks
+  sector_name = params$sector_name,
+  industry_name = params$industry_name,
+  n_sector_stocks = params$valuation_n_sector_stocks,
+  n_industry_stocks = params$valuation_n_industry_stocks
+)
+```
+
+## Return on Invested Capital
+
+```{r roic-chart, fig.width=10, fig.height=6}
+plot_roic(
+  params$roic_data,
+  params$ticker,
+  sector_name = params$sector_name,
+  industry_name = params$industry_name,
+  n_sector_stocks = params$roic_n_sector_stocks,
+  n_industry_stocks = params$roic_n_industry_stocks
 )
 ```
 
 ## Valuation Anomaly Detection
 
-```{r anomaly-chart, fig.width=10, fig.height=8}
-# Fit elliptic envelope
-envelope <- fit_elliptic_envelope(
+```{r anomaly-ev-nopat, fig.width=10, fig.height=8}
+# Fit elliptic envelope for EV/NOPAT
+envelope_ev <- fit_elliptic_envelope(
   params$anomaly_data$ev_nopat_yoy_change,
   params$anomaly_data$ev_nopat,
   contamination = 0.1
@@ -68,12 +90,68 @@ plot_elliptic_envelope(
   group_col = "industry",
   target_ticker = params$ticker,
   target_group = params$industry_name,
-  envelope_fit = envelope,
+  envelope_fit = envelope_ev,
   x_label = "YoY Change in EV/NOPAT",
   y_label = "EV to NOPAT (per share)",
   subtitle = paste0(
     "n = ", nrow(params$anomaly_data), " stocks in ", params$sector_name,
     " sector; EV/NOPAT clipped at 100x"
+  )
+)
+```
+
+## ROIC vs Valuation
+
+```{r anomaly-roic, fig.width=10, fig.height=8}
+# Fit elliptic envelope for ROIC vs EV/NOPAT
+envelope_roic <- fit_elliptic_envelope(
+  params$anomaly_data$roic_pct,
+  params$anomaly_data$ev_nopat,
+  contamination = 0.1
+)
+
+# Create plot
+plot_elliptic_envelope(
+  data = params$anomaly_data,
+  x_col = "roic_pct",
+  y_col = "ev_nopat",
+  ticker_col = "ticker",
+  group_col = "industry",
+  target_ticker = params$ticker,
+  target_group = params$industry_name,
+  envelope_fit = envelope_roic,
+  x_label = "ROIC (%)",
+  y_label = "EV to NOPAT (per share)",
+  subtitle = paste0(
+    "n = ", nrow(params$anomaly_data), " stocks in ", params$sector_name, " sector"
+  )
+)
+```
+
+## Price Momentum Anomaly Detection
+
+```{r anomaly-drawdown, fig.width=10, fig.height=8}
+# Fit elliptic envelope for drawdown vs TTM return
+envelope_dd <- fit_elliptic_envelope(
+  params$drawdown_anomaly_data$ttm_return,
+  params$drawdown_anomaly_data$drawdown_pct,
+  contamination = 0.1
+)
+
+# Create plot
+plot_elliptic_envelope(
+  data = params$drawdown_anomaly_data,
+  x_col = "ttm_return",
+  y_col = "drawdown_pct",
+  ticker_col = "ticker",
+  group_col = "industry",
+  target_ticker = params$ticker,
+  target_group = params$industry_name,
+  envelope_fit = envelope_dd,
+  x_label = "TTM Return",
+  y_label = "Current Drawdown (%)",
+  subtitle = paste0(
+    "n = ", nrow(params$drawdown_anomaly_data), " stocks in ", params$sector_name, " sector"
   )
 )
 ```

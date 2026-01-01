@@ -7,23 +7,34 @@
 plot_cumulative_return(
   data,
   ticker,
-  reference_name = "Sector",
-  n_reference_stocks = NULL
+  sector_name = "Sector",
+  industry_name = "Industry",
+  n_sector_stocks = NULL,
+  n_industry_stocks = NULL,
+  min_industry_stocks = 10
 )
 }
 \arguments{
-\item{data}{Data frame with columns: date, cumulative_return, and optionally sector_cumulative_return}
+\item{data}{Data frame with columns: date, cumulative_return, and optionally
+sector_cumulative_return and industry_cumulative_return}
 
 \item{ticker}{Character string for the ticker symbol}
 
-\item{reference_name}{Reference group name for legend (default: "Sector")}
+\item{sector_name}{Sector name for legend}
 
-\item{n_reference_stocks}{Number of stocks in reference group for subtitle}
+\item{industry_name}{Industry name for legend}
+
+\item{n_sector_stocks}{Number of stocks in sector for caption}
+
+\item{n_industry_stocks}{Number of stocks in industry for caption}
+
+\item{min_industry_stocks}{Minimum stocks required to show industry line (default: 10)}
 }
 \value{
 A ggplot2 object
 }
 \description{
-Creates a line chart showing cumulative returns with optional reference overlay.
-Includes data callouts for both lines when reference data is present.
+Creates a line chart showing cumulative returns with sector and industry overlays.
+Includes data callouts for all lines. Industry line is only shown if sample size
+is sufficient (>= 10 stocks).
 }

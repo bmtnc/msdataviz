@@ -2,13 +2,15 @@
 #'
 #' Fits an elliptic envelope using robust covariance estimation (Minimum
 #' Covariance Determinant). Returns Mahalanobis distances and outlier flags.
+#' Optionally winsorizes data before fitting.
 #'
 #' @param x Numeric vector for x-axis values
 #' @param y Numeric vector for y-axis values
 #' @param contamination Expected proportion of outliers (default: 0.1)
-#' @return List with: center, cov, distances, threshold, is_outlier
+#' @param winsorize_pct Percentile for winsorization (default: 0.02 for 2nd/98th)
+#' @return List with: center, cov, distances, threshold, is_outlier, x_winsorized, y_winsorized
 #' @export
-fit_elliptic_envelope <- function(x, y, contamination = 0.1) {
+fit_elliptic_envelope <- function(x, y, contamination = 0.1, winsorize_pct = 0.02) {
   if (length(x) != length(y)) {
     stop("x and y must have the same length")
   }
@@ -22,7 +24,11 @@ fit_elliptic_envelope <- function(x, y, contamination = 0.1) {
     stop("Need at least 3 complete observations")
   }
 
-  data_matrix <- cbind(x_clean, y_clean)
+  # Winsorize to reduce impact of extreme outliers
+  x_winsorized <- winsorize(x_clean, lower_pct = winsorize_pct, upper_pct = 1 - winsorize_pct)
+  y_winsorized <- winsorize(y_clean, lower_pct = winsorize_pct, upper_pct = 1 - winsorize_pct)
+
+  data_matrix <- cbind(x_winsorized, y_winsorized)
 
   # Fit robust covariance using MCD
   # quantile.used controls how many points are used (1 - contamination)
@@ -46,8 +52,13 @@ fit_elliptic_envelope <- function(x, y, contamination = 0.1) {
   # Build result for all original observations (including NAs)
   full_distances <- rep(NA_real_, length(x))
   full_is_outlier <- rep(NA, length(x))
+  full_x_winsorized <- rep(NA_real_, length(x))
+  full_y_winsorized <- rep(NA_real_, length(x))
+
   full_distances[complete_idx] <- distances
   full_is_outlier[complete_idx] <- is_outlier
+  full_x_winsorized[complete_idx] <- x_winsorized
+  full_y_winsorized[complete_idx] <- y_winsorized
 
   list(
     center = center,
@@ -55,7 +66,10 @@ fit_elliptic_envelope <- function(x, y, contamination = 0.1) {
     distances = full_distances,
     threshold = threshold,
     is_outlier = full_is_outlier,
-    contamination = contamination
+    contamination = contamination,
+    x_winsorized = full_x_winsorized,
+    y_winsorized = full_y_winsorized,
+    winsorize_pct = winsorize_pct
   )
 }
 

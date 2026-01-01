@@ -6,7 +6,6 @@
 \usage{
 render_price_report(
   ticker,
-  reference_level = c("sector", "industry"),
   output_dir = "output",
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
@@ -16,8 +15,6 @@ render_price_report(
 }
 \arguments{
 \item{ticker}{Character string for the ticker symbol}
-
-\item{reference_level}{Reference group level: "sector" or "industry" (default: "sector")}
 
 \item{output_dir}{Directory for output file (default: current directory)}
 
@@ -33,5 +30,5 @@ render_price_report(
 Path to the rendered HTML file
 }
 \description{
-Fetches data from S3 and renders an HTML price report with reference group base rates.
+Fetches data from S3 and renders an HTML price report with sector and industry base rates.
 }

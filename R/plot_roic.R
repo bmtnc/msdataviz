@@ -1,12 +1,11 @@
-#' Create Valuation Ratio Chart
+#' Create ROIC Chart
 #'
-#' Creates a line chart showing valuation ratio with sector and industry medians.
+#' Creates a line chart showing ROIC over time with sector and industry medians.
 #' Industry line is only shown if sample size is sufficient (>= 10 stocks).
 #'
-#' @param data Data frame with columns: date, valuation_ratio, and optionally
-#'   sector_valuation_ratio and industry_valuation_ratio
+#' @param data Data frame with columns: date, roic, and optionally
+#'   sector_roic and industry_roic
 #' @param ticker Character string for the ticker symbol
-#' @param metric_name Metric name for y-axis label
 #' @param sector_name Sector name for legend
 #' @param industry_name Industry name for legend
 #' @param n_sector_stocks Number of stocks in sector for caption
@@ -15,23 +14,22 @@
 #'
 #' @return A ggplot2 object
 #' @export
-plot_valuation_ratio <- function(
+plot_roic <- function(
     data,
     ticker,
-    metric_name = "EV to NOPAT (per share)",
     sector_name = "Sector",
     industry_name = "Industry",
     n_sector_stocks = NULL,
     n_industry_stocks = NULL,
     min_industry_stocks = 10
 ) {
-  avpipeline::validate_df_cols(data, c("date", "valuation_ratio"))
+  avpipeline::validate_df_cols(data, c("date", "roic"))
   avpipeline::validate_non_empty(data, "data")
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
 
-  has_sector <- "sector_valuation_ratio" %in% names(data)
+  has_sector <- "sector_roic" %in% names(data)
   # Only show industry line if we have sufficient sample size
-  has_industry <- "industry_valuation_ratio" %in% names(data) &&
+  has_industry <- "industry_roic" %in% names(data) &&
     !is.null(n_industry_stocks) &&
     n_industry_stocks >= min_industry_stocks
 
@@ -40,7 +38,7 @@ plot_valuation_ratio <- function(
   if (!is.null(n_sector_stocks)) {
     caption_parts <- c(caption_parts, paste0(sector_name, ": n = ", n_sector_stocks))
   }
-  if (!is.null(n_industry_stocks)) {
+  if (!is.null(n_industry_stocks) && n_industry_stocks >= min_industry_stocks) {
     caption_parts <- c(caption_parts, paste0(industry_name, ": n = ", n_industry_stocks))
   }
   caption <- if (length(caption_parts) > 0) paste(caption_parts, collapse = "; ") else NULL
@@ -76,7 +74,7 @@ plot_valuation_ratio <- function(
   if (has_sector) {
     p <- p +
       ggplot2::geom_line(
-        ggplot2::aes(y = sector_valuation_ratio, color = sector_legend),
+        ggplot2::aes(y = sector_roic, color = sector_legend),
         linewidth = 0.3
       )
   }
@@ -85,7 +83,7 @@ plot_valuation_ratio <- function(
   if (has_industry) {
     p <- p +
       ggplot2::geom_line(
-        ggplot2::aes(y = industry_valuation_ratio, color = industry_legend),
+        ggplot2::aes(y = industry_roic, color = industry_legend),
         linewidth = 0.5
       )
   }
@@ -93,7 +91,7 @@ plot_valuation_ratio <- function(
   # Ticker line: thickest, navy (top layer)
   p <- p +
     ggplot2::geom_line(
-      ggplot2::aes(y = valuation_ratio, color = ticker),
+      ggplot2::aes(y = roic, color = ticker),
       linewidth = 1.0
     )
 
@@ -101,13 +99,13 @@ plot_valuation_ratio <- function(
   p <- p +
     ggplot2::geom_point(
       data = last_row,
-      ggplot2::aes(y = valuation_ratio),
+      ggplot2::aes(y = roic),
       color = "navy",
       size = 3
     ) +
     ggplot2::geom_text(
       data = last_row,
-      ggplot2::aes(y = valuation_ratio, label = sprintf("%.1fx", valuation_ratio)),
+      ggplot2::aes(y = roic, label = sprintf("%.1f%%", roic)),
       color = "navy",
       hjust = -0.2,
       size = 3.5
@@ -118,13 +116,13 @@ plot_valuation_ratio <- function(
     p <- p +
       ggplot2::geom_point(
         data = last_row,
-        ggplot2::aes(y = sector_valuation_ratio),
+        ggplot2::aes(y = sector_roic),
         color = "gray50",
         size = 2.5
       ) +
       ggplot2::geom_text(
         data = last_row,
-        ggplot2::aes(y = sector_valuation_ratio, label = sprintf("%.1fx", sector_valuation_ratio)),
+        ggplot2::aes(y = sector_roic, label = sprintf("%.1f%%", sector_roic)),
         color = "gray50",
         hjust = -0.2,
         size = 3
@@ -136,13 +134,13 @@ plot_valuation_ratio <- function(
     p <- p +
       ggplot2::geom_point(
         data = last_row,
-        ggplot2::aes(y = industry_valuation_ratio),
+        ggplot2::aes(y = industry_roic),
         color = "steelblue",
         size = 2.5
       ) +
       ggplot2::geom_text(
         data = last_row,
-        ggplot2::aes(y = industry_valuation_ratio, label = sprintf("%.1fx", industry_valuation_ratio)),
+        ggplot2::aes(y = industry_roic, label = sprintf("%.1f%%", industry_roic)),
         color = "steelblue",
         hjust = -0.2,
         size = 3
@@ -150,7 +148,7 @@ plot_valuation_ratio <- function(
   }
 
   p +
-    ggplot2::scale_y_continuous(labels = function(x) paste0(x, "x")) +
+    ggplot2::scale_y_continuous(labels = function(x) paste0(x, "%")) +
     ggplot2::scale_x_date(
       date_breaks = "1 year",
       date_labels = "%Y",
@@ -162,7 +160,7 @@ plot_valuation_ratio <- function(
     ggplot2::labs(
       title = NULL,
       x = NULL,
-      y = metric_name,
+      y = "ROIC (%)",
       color = NULL,
       caption = caption
     ) +
