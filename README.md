@@ -17,163 +17,226 @@ avpipeline-artifacts-prod/
 │   ├── income_statement.parquet
 │   ├── overview.parquet
 │   ├── price.parquet
-│   ├── splits.parquet
-│   └── ttm.parquet                  # Processed TTM data for this ticker
-├── ttm-artifacts/{DATE}/            # Full ETF artifacts by run date
-│   └── ttm_per_share_financial_artifact.parquet
-├── checkpoint/                      # Pipeline checkpoints
+│   └── splits.parquet
+├── ttm-artifacts/{DATE}/            # Combined artifacts by run date
+│   ├── ttm_quarterly_artifact.parquet   # Quarterly financials + TTM metrics
+│   └── price_artifact.parquet           # Daily prices for all tickers
 └── logs/                            # Pipeline run logs
 ```
 
 ### What's Available
 
-| Path | Description | Use Case |
-|------|-------------|----------|
-| `raw/{TICKER}/ttm.parquet` | Single ticker TTM data | Analyze individual stocks |
-| `raw/{TICKER}/price.parquet` | Raw daily prices | Price-only analysis |
-| `ttm-artifacts/{DATE}/ttm_per_share_financial_artifact.parquet` | All tickers from ETF run | Cross-sectional analysis |
+| Artifact | Frequency | Description |
+|----------|-----------|-------------|
+| `ttm_quarterly_artifact.parquet` | Quarterly | Financial statements with TTM metrics |
+| `price_artifact.parquet` | Daily | Adjusted prices, volume, splits |
+
+## Architecture Notes
+
+### Why Two Artifacts?
+
+The price artifact is **daily** (~250 rows/ticker/year) while TTM is **quarterly** (~4 rows/ticker/year). Keeping them separate avoids a 60x data explosion. Join on-demand when needed.
+
+### Which Loader to Use
+
+| Use Case | Function | Notes |
+|----------|----------|-------|
+| Price analysis (returns, drawdowns) | `get_latest_price_artifact()` | Daily frequency, lightweight |
+| Fundamental snapshots | `get_latest_ttm_artifact()` | Quarterly frequency, use for screening |
+| Valuation over time (P/E, P/S) | `load_daily_ttm_artifact()` | Joins + ffills quarterly→daily |
+
+### Memory Considerations
+
+When joining TTM to daily prices, **select only needed columns first**:
+
+```r
+# GOOD: Select before join
+ttm_subset <- avpipeline::get_latest_ttm_artifact() |>
+  dplyr::select(ticker, fiscalDateEnding, sector, netIncome_ttm)
+
+# BAD: Join full TTM artifact (50+ columns × daily rows)
+daily <- avpipeline::load_daily_ttm_artifact()  # Large object
+```
+
+### Sector/Industry for Base Rates
+
+The TTM artifact includes `sector` and `industry` columns for grouping. Use these to calculate sector averages as comparison benchmarks:
+
+```r
+ttm <- avpipeline::get_latest_ttm_artifact()
+
+# Get sector for a ticker
+target_sector <- ttm |>
+  dplyr::filter(ticker == "AAPL") |>
+  dplyr::pull(sector) |>
+  unique()
+
+# Filter to sector peers
+sector_peers <- ttm |>
+  dplyr::filter(sector == target_sector)
+```
 
 ## Reading Data from S3
 
-### Single Ticker (Recommended)
+### Load Latest Artifacts (Recommended)
 
 ```r
-# Read processed TTM data for a single ticker
-ttm_data <- arrow::read_parquet(
+# Load quarterly TTM data (all tickers)
+ttm <- avpipeline::get_latest_ttm_artifact()
 
-  "s3://avpipeline-artifacts-prod/raw/AAPL/ttm.parquet"
-)
-
-# Or use avpipeline helper (processes raw data on-the-fly)
-ttm_data <- avpipeline::process_ticker_from_s3(
-
-  ticker = "AAPL",
-  bucket_name = "avpipeline-artifacts-prod"
-)
-```
-
-### Full ETF Artifact
-
-```r
-# Read the latest full artifact (all tickers from last pipeline run)
-ttm_all <- arrow::read_parquet(
-
-  "s3://avpipeline-artifacts-prod/ttm-artifacts/2025-12-23/ttm_per_share_financial_artifact.parquet"
-)
+# Load daily price data (all tickers)
+prices <- avpipeline::get_latest_price_artifact()
 
 # Filter to specific ticker
-aapl <- ttm_all |> dplyr::filter(ticker == "AAPL")
+aapl <- ttm |> dplyr::filter(ticker == "AAPL")
 ```
 
-### Raw Financial Statements
+### Add Per-Share Metrics
+
+The TTM artifact contains raw financials. Use `add_per_share_columns()` to create per-share metrics:
 
 ```r
-# Read raw balance sheet
-balance_sheet <- arrow::read_parquet(
-  "s3://avpipeline-artifacts-prod/raw/AAPL/balance_sheet.parquet"
+ttm <- avpipeline::get_latest_ttm_artifact()
+
+# Add per-share columns for selected metrics
+ttm <- ttm |>
+  avpipeline::add_per_share_columns(
+    cols = c("totalRevenue_ttm", "netIncome_ttm", "operatingCashflow_ttm",
+             "ebitda_ttm", "totalAssets", "totalShareholderEquity")
+  )
+
+# Now you have: totalRevenue_ttm_per_share, netIncome_ttm_per_share, etc.
+```
+
+### Daily Frequency with Per-Share Metrics
+
+For daily-frequency analysis with forward-filled financials and per-share metrics:
+
+```r
+# Load and join both artifacts, calculate per-share metrics
+daily <- avpipeline::load_daily_ttm_artifact(
+  bucket_name = "avpipeline-artifacts-prod"
 )
 
-# Read raw income statement
-income <- arrow::read_parquet(
-  "s3://avpipeline-artifacts-prod/raw/AAPL/income_statement.parquet"
+# Or filter to specific tickers/dates
+daily <- avpipeline::load_daily_ttm_artifact(
+ bucket_name = "avpipeline-artifacts-prod",
+  tickers = c("AAPL", "MSFT"),
+  start_date = as.Date("2020-01-01")
 )
 ```
 
 ## Key Columns
 
-### Date Columns
+### TTM Quarterly Artifact
 
-| Column | Description | Use For |
-|--------|-------------|---------|
-| `date` | Daily price date | Primary key for daily analysis |
-| `fiscalDateEnding` | Quarter end date | Quarterly KPI analysis |
-| `reportedDate` | Actual earnings announcement | When financials became public |
-
-### Price & Market Data
+#### Identifiers & Dates
 
 | Column | Description |
 |--------|-------------|
+| `ticker` | Stock ticker symbol |
+| `fiscalDateEnding` | Quarter end date (use for quarterly analysis) |
+| `reportedDate` | Actual earnings announcement date |
+| `calendar_quarter_ending` | Standardized calendar quarter |
+
+#### Share Data
+
+| Column | Description |
+|--------|-------------|
+| `commonStockSharesOutstanding` | Shares outstanding from balance sheet |
+
+#### TTM Flow Metrics (Income/Cash Flow)
+
+| Column | Description |
+|--------|-------------|
+| `totalRevenue_ttm` | Revenue (trailing 12 months) |
+| `grossProfit_ttm` | Gross profit (TTM) |
+| `operatingIncome_ttm` | Operating income (TTM) |
+| `netIncome_ttm` | Net income (TTM) |
+| `ebitda_ttm` | EBITDA (TTM) |
+| `operatingCashflow_ttm` | Operating cash flow (TTM) |
+| `capitalExpenditures_ttm` | Capital expenditures (TTM) |
+
+#### Balance Sheet (Point-in-Time)
+
+| Column | Description |
+|--------|-------------|
+| `totalAssets` | Total assets |
+| `totalLiabilities` | Total liabilities |
+| `totalShareholderEquity` | Book value |
+| `longTermDebt` | Long-term debt |
+| `cashAndShortTermInvestments` | Cash and equivalents |
+
+#### Metadata
+
+| Column | Description |
+|--------|-------------|
+| `sector` | Company sector |
+| `industry` | Company industry |
+| `exchange` | Stock exchange |
+
+### Price Artifact
+
+| Column | Description |
+|--------|-------------|
+| `ticker` | Stock ticker symbol |
+| `date` | Trading date |
 | `adjusted_close` | Split/dividend-adjusted close price |
-| `close` | Unadjusted close price |
 | `volume` | Daily trading volume |
-| `market_cap` | Daily market capitalization |
-
-### Share Metrics
-
-| Column | Description |
-|--------|-------------|
-| `commonStockSharesOutstanding` | Shares outstanding (from filings) |
-| `effective_shares_outstanding` | Split-adjusted shares |
-
-### TTM Per-Share Metrics (Flow - Income/Cash Flow)
-
-| Column | Description |
-|--------|-------------|
-| `totalRevenue_ttm_per_share` | Revenue per share (TTM) |
-| `grossProfit_ttm_per_share` | Gross profit per share (TTM) |
-| `operatingIncome_ttm_per_share` | Operating income per share (TTM) |
-| `netIncome_ttm_per_share` | Net income per share (TTM) |
-| `ebitda_ttm_per_share` | EBITDA per share (TTM) |
-| `operatingCashflow_ttm_per_share` | Operating cash flow per share (TTM) |
-| `capitalExpenditures_ttm_per_share` | CapEx per share (TTM) |
-
-### Derived Metrics
-
-| Column | Description |
-|--------|-------------|
-| `nopat_ttm_per_share` | Net Operating Profit After Tax per share |
-| `fcf_ttm_per_share` | Free Cash Flow per share |
-| `invested_capital_per_share` | Invested capital per share |
-| `enterprise_value_per_share` | Enterprise value per share |
-
-### Balance Sheet Per-Share (Point-in-Time)
-
-| Column | Description |
-|--------|-------------|
-| `totalAssets_per_share` | Total assets per share |
-| `totalLiabilities_per_share` | Total liabilities per share |
-| `totalShareholderEquity_per_share` | Book value per share |
-| `totalDebt_per_share` | Total debt per share |
-| `cashAndShortTermInvestments_per_share` | Cash per share |
+| `split_coefficient` | Split ratio (1.0 = no split) |
 
 ## Common Patterns
+
+### Calculate Per-Share Metrics
+
+```r
+ttm <- avpipeline::get_latest_ttm_artifact() |>
+  avpipeline::add_per_share_columns(
+    cols = c("totalRevenue_ttm", "netIncome_ttm", "ebitda_ttm",
+             "operatingCashflow_ttm", "capitalExpenditures_ttm",
+             "totalAssets", "totalShareholderEquity", "longTermDebt")
+  ) |>
+  dplyr::mutate(
+    # Derived metrics
+    fcf_ttm = operatingCashflow_ttm - capitalExpenditures_ttm,
+    fcf_ttm_per_share = fcf_ttm / commonStockSharesOutstanding
+  )
+```
+
+### Get Latest Quarter for Each Ticker
+
+```r
+latest <- ttm |>
+  dplyr::group_by(ticker) |>
+  dplyr::filter(fiscalDateEnding == max(fiscalDateEnding)) |>
+  dplyr::ungroup()
+```
+
+### Join Price and Quarterly Data
+
+```r
+# Get latest price for each ticker
+latest_prices <- prices |>
+  dplyr::group_by(ticker) |>
+  dplyr::filter(date == max(date)) |>
+  dplyr::ungroup() |>
+  dplyr::select(ticker, date, adjusted_close)
+
+# Join with latest quarterly data
+combined <- latest |>
+  dplyr::inner_join(latest_prices, by = "ticker")
+```
 
 ### Calculate Valuation Multiples
 
 ```r
+# After adding per-share columns and joining with prices
 data <- data |>
   dplyr::mutate(
-    ev_ebitda = enterprise_value_per_share / ebitda_ttm_per_share,
-    ev_nopat = enterprise_value_per_share / nopat_ttm_per_share,
-    ev_fcf = enterprise_value_per_share / fcf_ttm_per_share,
     pe_ratio = adjusted_close / netIncome_ttm_per_share,
-    price_to_book = adjusted_close / totalShareholderEquity_per_share
+    price_to_book = adjusted_close / totalShareholderEquity_per_share,
+    price_to_sales = adjusted_close / totalRevenue_ttm_per_share
   )
-```
-
-### Calculate ROIC
-
-```r
-data <- data |>
-  dplyr::mutate(
-    roic = nopat_ttm_per_share / invested_capital_per_share * 100
-  )
-```
-
-### Filter to Quarterly Frequency
-
-```r
-# Get one row per quarter (for bar charts, etc.)
-quarterly <- data |>
-  dplyr::distinct(fiscalDateEnding, .keep_all = TRUE) |>
-  dplyr::arrange(fiscalDateEnding)
-```
-
-### Get Latest Values
-
-```r
-latest <- data |>
-  dplyr::filter(date == max(date))
 ```
 
 ## Scripts
@@ -182,8 +245,6 @@ latest <- data |>
 |--------|-------------|
 | `scripts/price_decomp_single_stock.R` | Decompose price changes into fundamental vs multiple |
 | `scripts/explore_single_stock.R` | Dual-plot explorer: quarterly KPI + daily valuation |
-
-Both scripts support `DATA_SOURCE = "s3"` or `DATA_SOURCE = "api"`.
 
 ## Installation
 

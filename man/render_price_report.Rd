@@ -9,6 +9,7 @@ render_price_report(
   output_dir = "output",
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
+  valuation_metric = "netIncome_ttm",
   s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
   aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 )
@@ -22,6 +23,8 @@ render_price_report(
 
 \item{end_date}{End date for filtering data (default: NULL, no upper bound)}
 
+\item{valuation_metric}{Fundamental metric for valuation chart (default: "netIncome_ttm")}
+
 \item{s3_bucket}{S3 bucket name}
 
 \item{aws_region}{AWS region}
@@ -30,5 +33,5 @@ render_price_report(
 Path to the rendered HTML file
 }
 \description{
-Fetches data from S3 and renders an HTML price report.
+Fetches data from S3 and renders an HTML price report with sector base rates.
 }

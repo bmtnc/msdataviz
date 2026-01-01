@@ -2,18 +2,23 @@
 #'
 #' Creates an area chart showing rolling drawdown from cumulative highs.
 #'
-#' @param data Data frame with columns: date, price
+#' @param data Data frame with columns: date, and either price or drawdown
 #' @param ticker Character string for the ticker symbol
 #'
 #' @return A ggplot2 object
 #' @export
 plot_drawdown <- function(data, ticker) {
-  avpipeline::validate_df_cols(data, c("date", "price"))
   avpipeline::validate_non_empty(data, "data")
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
 
-  plot_data <- data %>%
-    dplyr::mutate(drawdown = drawdown_from_high(price))
+  # Calculate drawdown if not provided
+  if ("drawdown" %in% names(data)) {
+    plot_data <- data
+  } else {
+    avpipeline::validate_df_cols(data, c("date", "price"))
+    plot_data <- data %>%
+      dplyr::mutate(drawdown = drawdown_from_high(price))
+  }
 
   plot_data %>%
     ggplot2::ggplot(ggplot2::aes(x = date, y = drawdown)) +

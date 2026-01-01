@@ -14,5 +14,6 @@ Character string with the color value
 }
 \description{
 Extracts the color used in the first geom_line layer of a ggplot.
+Returns the first color from the scale if color is mapped aesthetically.
 }
 \keyword{internal}

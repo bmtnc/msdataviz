@@ -7,7 +7,7 @@
 plot_drawdown(data, ticker)
 }
 \arguments{
-\item{data}{Data frame with columns: date, price}
+\item{data}{Data frame with columns: date, and either price or drawdown}
 
 \item{ticker}{Character string for the ticker symbol}
 }

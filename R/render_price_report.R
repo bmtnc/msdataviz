@@ -1,6 +1,6 @@
 #' Render Price Report for a Ticker
 #'
-#' Fetches data from S3 and renders an HTML price report.
+#' Fetches data from S3 and renders an HTML price report with sector base rates.
 #'
 #' @param ticker Character string for the ticker symbol
 #' @param output_dir Directory for output file (default: current directory)
@@ -21,23 +21,29 @@ render_price_report <- function(
 ) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
 
-  price_data <- avpipeline::process_ticker_from_s3(
-    ticker = ticker,
-    bucket_name = s3_bucket,
-    start_date = as.Date("2000-01-01"),
-    region = aws_region
+  # Load artifacts once for both data preps
+  artifacts <- get_cached_artifacts(
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
   )
 
-  if (is.null(price_data) || nrow(price_data) == 0) {
-    stop("No data returned for ", ticker)
-  }
+  report_data <- prepare_price_report_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
 
-  price_data <- price_data %>%
-    dplyr::filter(!is.na(adjusted_close)) %>%
-    dplyr::select(date, price = adjusted_close) %>%
-    dplyr::filter(date >= start_date) %>%
-    dplyr::filter(if (!is.null(end_date)) date <= end_date else TRUE) %>%
-    dplyr::arrange(date)
+  valuation_result <- prepare_valuation_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
 
   template_path <- system.file(
     "templates", "price_report.Rmd",
@@ -48,14 +54,23 @@ render_price_report <- function(
     stop("Template not found. Is msdataviz installed?")
   }
 
+  output_dir <- normalizePath(output_dir, mustWork = FALSE)
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+
   output_file <- file.path(output_dir, paste0(ticker, "_price_report.html"))
 
   rmarkdown::render(
     input = template_path,
     output_file = output_file,
     params = list(
-      ticker = ticker,
-      price_data = price_data
+      ticker = report_data$ticker,
+      ticker_data = report_data$ticker_data,
+      sector_name = report_data$sector_name,
+      n_sector_stocks = report_data$n_sector_stocks,
+      valuation_data = valuation_result$valuation_data,
+      valuation_metric_name = valuation_result$metric_name
     ),
     quiet = TRUE
   )
