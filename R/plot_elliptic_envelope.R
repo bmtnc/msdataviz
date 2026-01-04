@@ -3,25 +3,25 @@
 #' Creates a scatter plot with elliptic envelope for outlier detection.
 #' Points are colored by group membership and outlier status.
 #'
-#' @param data Data frame with required columns
+#' @param data Data frame containing the population to plot
 #' @param x_col Name of column for x-axis
 #' @param y_col Name of column for y-axis
 #' @param ticker_col Name of column containing ticker symbols
-#' @param group_col Name of column for group membership (e.g., "industry")
+#' @param focus_group_col Name of column identifying the focus group within population
 #' @param target_ticker The ticker to highlight
-#' @param target_group The group of the target ticker (for coloring same-group tickers)
+#' @param target_focus_group The value in focus_group_col to emphasize
 #' @param envelope_fit Result from fit_elliptic_envelope()
 #' @param x_label Label for x-axis
 #' @param y_label Label for y-axis
 #' @param subtitle Optional subtitle text (e.g., for disclaimers)
-#' @param show_outlier_labels Whether to show ticker labels for outliers (default: TRUE)
+#' @param show_outlier_labels Whether to show ticker labels for focus group outliers (default: TRUE)
 #' @param x_as_percent Whether to transform x-axis as percentage (multiplies by 100 and adds %)
 #' @param x_pct_labels Whether to add % to x-axis labels (no transformation, for data already in %)
 #' @param y_pct_labels Whether to add % to y-axis labels (no transformation, for data already in %)
-#' @param n_sector_stocks Number of stocks in sector for caption
-#' @param n_subsector_stocks Number of stocks in subsector for caption
-#' @param sector_name Sector name for caption
-#' @param subsector_name Subsector name for caption
+#' @param n_population Number of stocks in the background population for caption
+#' @param n_focus_group Number of stocks in the focus group for caption
+#' @param population_label Label for the population (e.g., "Technology", "Software")
+#' @param focus_group_label Label for the focus group (e.g., "Software", "Enterprise Software")
 #'
 #' @return A ggplot2 object
 #' @export
@@ -30,9 +30,9 @@ plot_elliptic_envelope <- function(
     x_col,
     y_col,
     ticker_col,
-    group_col,
+    focus_group_col,
     target_ticker,
-    target_group,
+    target_focus_group,
     envelope_fit,
     x_label = x_col,
     y_label = y_col,
@@ -41,12 +41,13 @@ plot_elliptic_envelope <- function(
     x_as_percent = FALSE,
     x_pct_labels = FALSE,
     y_pct_labels = FALSE,
-    n_sector_stocks = NULL,
-    n_subsector_stocks = NULL,
-    sector_name = "Sector",
-    subsector_name = "Subsector"
+    n_population = NULL,
+    n_focus_group = NULL,
+    population_label = "Population",
+    focus_group_label = "Focus Group"
 ) {
   avpipeline::validate_non_empty(data, "data")
+  avpipeline::validate_df_cols(data, c(ticker_col, focus_group_col, x_col, y_col))
 
   # Add envelope results to data, using winsorized values for plotting
   # Apply percentage transformation if requested
@@ -60,35 +61,27 @@ plot_elliptic_envelope <- function(
       x_val = x_winsorized,
       y_val = envelope_fit$y_winsorized,
       ticker = .data[[ticker_col]],
-      group = .data[[group_col]],
+      focus_group = .data[[focus_group_col]],
       is_outlier = envelope_fit$is_outlier,
       mahal_dist = envelope_fit$distances
     ) %>%
     dplyr::filter(!is.na(x_val) & !is.na(y_val))
 
-  # Build caption with population counts and winsorization note
-  # Convert snake_case names to display case for labels
-  caption_parts <- c()
-  if (!is.null(n_sector_stocks)) {
-    caption_parts <- c(caption_parts, paste0(to_display_case(sector_name), " population: ", n_sector_stocks))
-  }
-  if (!is.null(n_subsector_stocks)) {
-    caption_parts <- c(caption_parts, paste0(to_display_case(subsector_name), " population: ", n_subsector_stocks))
-  }
-  winsorize_pct <- envelope_fit$winsorize_pct * 100
-  caption_parts <- c(
-    caption_parts,
-    sprintf("Data winsorized at %.0fth/%.0fth percentiles", winsorize_pct, 100 - winsorize_pct)
+  full_caption <- build_envelope_caption(
+    n_population = n_population,
+    n_focus_group = n_focus_group,
+    population_label = population_label,
+    focus_group_label = focus_group_label,
+    winsorize_pct = envelope_fit$winsorize_pct
   )
-  full_caption <- paste(caption_parts, collapse = "\n")
 
   # Categorize points
   plot_data <- plot_data %>%
     dplyr::mutate(
       point_category = dplyr::case_when(
         ticker == target_ticker ~ "target",
-        group == target_group & is_outlier ~ "same_group_outlier",
-        group == target_group ~ "same_group",
+        focus_group == target_focus_group & is_outlier ~ "focus_group_outlier",
+        focus_group == target_focus_group ~ "focus_group",
         is_outlier ~ "other_outlier",
         TRUE ~ "other"
       )
@@ -106,13 +99,13 @@ plot_elliptic_envelope <- function(
     ellipse_df$x <- ellipse_df$x * 100
   }
 
-  # Define colors - distinct colors for subsector vs sector peers
+  # Define colors - distinct colors for focus group vs population peers
   point_colors <- c(
     "target" = "#FFD700",               # Bright gold for target ticker
-    "same_group" = "#2C3E50",           # Dark charcoal for subsector peers
-    "same_group_outlier" = "#C0392B",   # Dark red for subsector outliers
-    "other" = "#BDC3C7",                # Light gray for sector peers
-    "other_outlier" = "#F5B7B1"         # Light pink for sector outliers
+    "focus_group" = "#2C3E50",          # Dark charcoal for focus group peers
+    "focus_group_outlier" = "#C0392B",  # Dark red for focus group outliers
+    "other" = "#BDC3C7",                # Light gray for population peers
+    "other_outlier" = "#F5B7B1"         # Light pink for population outliers
   )
 
   # Point sizes - all same size
@@ -147,19 +140,19 @@ plot_elliptic_envelope <- function(
       size = point_size,
       alpha = 0.5
     ) +
-    # Same subsector points - semi-transparent
+    # Focus group points - semi-transparent
     ggplot2::geom_point(
-      data = plot_data %>% dplyr::filter(point_category == "same_group"),
+      data = plot_data %>% dplyr::filter(point_category == "focus_group"),
       ggplot2::aes(x = x_val, y = y_val),
-      color = point_colors["same_group"],
+      color = point_colors["focus_group"],
       size = point_size,
       alpha = 0.7
     ) +
-    # Same subsector outliers - semi-transparent
+    # Focus group outliers - semi-transparent
     ggplot2::geom_point(
-      data = plot_data %>% dplyr::filter(point_category == "same_group_outlier"),
+      data = plot_data %>% dplyr::filter(point_category == "focus_group_outlier"),
       ggplot2::aes(x = x_val, y = y_val),
-      color = point_colors["same_group_outlier"],
+      color = point_colors["focus_group_outlier"],
       size = point_size,
       alpha = 0.7
     ) +
@@ -186,11 +179,11 @@ plot_elliptic_envelope <- function(
     )
 
 
-  # Add outlier labels if requested - only for subsector peers that are outliers
+  # Add outlier labels if requested - only for focus group peers that are outliers
   if (show_outlier_labels) {
     label_data <- plot_data %>%
       dplyr::filter(
-        (group == target_group & is_outlier) | ticker == target_ticker
+        (focus_group == target_focus_group & is_outlier) | ticker == target_ticker
       )
 
     if (nrow(label_data) > 0) {

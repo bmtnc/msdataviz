@@ -9,9 +9,9 @@ plot_elliptic_envelope(
   x_col,
   y_col,
   ticker_col,
-  group_col,
+  focus_group_col,
   target_ticker,
-  target_group,
+  target_focus_group,
   envelope_fit,
   x_label = x_col,
   y_label = y_col,
@@ -20,14 +20,14 @@ plot_elliptic_envelope(
   x_as_percent = FALSE,
   x_pct_labels = FALSE,
   y_pct_labels = FALSE,
-  n_sector_stocks = NULL,
-  n_subsector_stocks = NULL,
-  sector_name = "Sector",
-  subsector_name = "Subsector"
+  n_population = NULL,
+  n_focus_group = NULL,
+  population_label = "Population",
+  focus_group_label = "Focus Group"
 )
 }
 \arguments{
-\item{data}{Data frame with required columns}
+\item{data}{Data frame containing the population to plot}
 
 \item{x_col}{Name of column for x-axis}
 
@@ -35,11 +35,11 @@ plot_elliptic_envelope(
 
 \item{ticker_col}{Name of column containing ticker symbols}
 
-\item{group_col}{Name of column for group membership (e.g., "industry")}
+\item{focus_group_col}{Name of column identifying the focus group within population}
 
 \item{target_ticker}{The ticker to highlight}
 
-\item{target_group}{The group of the target ticker (for coloring same-group tickers)}
+\item{target_focus_group}{The value in focus_group_col to emphasize}
 
 \item{envelope_fit}{Result from fit_elliptic_envelope()}
 
@@ -49,7 +49,7 @@ plot_elliptic_envelope(
 
 \item{subtitle}{Optional subtitle text (e.g., for disclaimers)}
 
-\item{show_outlier_labels}{Whether to show ticker labels for outliers (default: TRUE)}
+\item{show_outlier_labels}{Whether to show ticker labels for focus group outliers (default: TRUE)}
 
 \item{x_as_percent}{Whether to transform x-axis as percentage (multiplies by 100 and adds \%)}
 
@@ -57,13 +57,13 @@ plot_elliptic_envelope(
 
 \item{y_pct_labels}{Whether to add \% to y-axis labels (no transformation, for data already in \%)}
 
-\item{n_sector_stocks}{Number of stocks in sector for caption}
+\item{n_population}{Number of stocks in the background population for caption}
 
-\item{n_subsector_stocks}{Number of stocks in subsector for caption}
+\item{n_focus_group}{Number of stocks in the focus group for caption}
 
-\item{sector_name}{Sector name for caption}
+\item{population_label}{Label for the population (e.g., "Technology", "Software")}
 
-\item{subsector_name}{Subsector name for caption}
+\item{focus_group_label}{Label for the focus group (e.g., "Software", "Enterprise Software")}
 }
 \value{
 A ggplot2 object

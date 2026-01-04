@@ -140,17 +140,17 @@ plot_elliptic_envelope(
   x_col = "roic_pct",
   y_col = "ev_nopat",
   ticker_col = "ticker",
-  group_col = "subsector",
+  focus_group_col = "subsector",
   target_ticker = params$ticker,
-  target_group = params$subsector_name,
+  target_focus_group = params$subsector_name,
   envelope_fit = envelope_roic,
   x_label = "ROIC",
   y_label = "EV to NOPAT",
   x_pct_labels = TRUE,
-  n_sector_stocks = params$valuation_n_sector_stocks,
-  n_subsector_stocks = params$valuation_n_subsector_stocks,
-  sector_name = params$sector_name,
-  subsector_name = params$subsector_name
+  n_population = params$valuation_n_sector_stocks,
+  n_focus_group = params$valuation_n_subsector_stocks,
+  population_label = params$sector_name,
+  focus_group_label = params$subsector_name
 )
 ```
 
@@ -169,18 +169,18 @@ plot_elliptic_envelope(
   x_col = "ttm_return",
   y_col = "return_3m",
   ticker_col = "ticker",
-  group_col = "subsector",
+  focus_group_col = "subsector",
   target_ticker = params$ticker,
-  target_group = params$subsector_name,
+  target_focus_group = params$subsector_name,
   envelope_fit = envelope_momentum,
   x_label = "TTM Return (%)",
   y_label = "3-Month Return (%)",
   x_pct_labels = TRUE,
   y_pct_labels = TRUE,
-  n_sector_stocks = params$n_sector_stocks,
-  n_subsector_stocks = params$n_subsector_stocks,
-  sector_name = params$sector_name,
-  subsector_name = params$subsector_name
+  n_population = params$n_sector_stocks,
+  n_focus_group = params$n_subsector_stocks,
+  population_label = params$sector_name,
+  focus_group_label = params$subsector_name
 )
 ```
 
@@ -199,17 +199,17 @@ plot_elliptic_envelope(
   x_col = "operating_margin",
   y_col = "asset_turnover",
   ticker_col = "ticker",
-  group_col = "subsector",
+  focus_group_col = "industry",
   target_ticker = params$ticker,
-  target_group = params$subsector_name,
+  target_focus_group = params$industry_name,
   envelope_fit = envelope_dupont,
   x_label = "Operating Margin (%)",
   y_label = "Asset Turnover (x)",
   subtitle = "Excludes stocks with negative operating income",
   x_pct_labels = TRUE,
-  n_sector_stocks = params$n_sector_stocks,
-  n_subsector_stocks = params$n_subsector_stocks,
-  sector_name = params$sector_name,
-  subsector_name = params$subsector_name
+  n_population = params$n_subsector_stocks,
+  n_focus_group = params$n_industry_stocks,
+  population_label = params$subsector_name,
+  focus_group_label = params$industry_name
 )
 ```
