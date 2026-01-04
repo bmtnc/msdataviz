@@ -90,6 +90,15 @@ render_price_report <- function(
     aws_region = aws_region
   )
 
+  dupont_over_time_result <- prepare_dupont_over_time_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
+
   # Prepare rolling beta data
   ttm_data <- artifacts$ttm_data
   sector_name <- get_ticker_sector(ticker, ttm_data)
@@ -157,7 +166,9 @@ render_price_report <- function(
       decomposition_data = decomposition_result$decomposition_data,
       decomposition_metric_display_name = decomposition_result$metric_display_name,
       decomposition_numerator = decomposition_result$numerator,
-      decomposition_base_date = decomposition_result$base_date
+      decomposition_base_date = decomposition_result$base_date,
+      dupont_over_time_data = dupont_over_time_result$data,
+      dupont_income_metric_name = dupont_over_time_result$income_metric_name
     ),
     quiet = TRUE
   )

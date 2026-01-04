@@ -30,6 +30,8 @@ params:
   decomposition_metric_display_name: "NOPAT"
   decomposition_numerator: "price"
   decomposition_base_date: NULL
+  dupont_over_time_data: NULL
+  dupont_income_metric_name: "Net Income"
 ---
 
 ```{r setup, include=FALSE}
@@ -94,6 +96,18 @@ p_roic <- plot_roic(
 )
 
 gridExtra::grid.arrange(p_valuation, p_roic, ncol = 2)
+```
+
+## DuPont Decomposition
+
+```{r dupont-over-time, fig.width=10, fig.height=6}
+if (!is.null(params$dupont_over_time_data) && nrow(params$dupont_over_time_data) > 0) {
+  plot_dupont_over_time(
+    data = params$dupont_over_time_data,
+    ticker = params$ticker,
+    income_metric_name = params$dupont_income_metric_name
+  )
+}
 ```
 
 ## Momentum Divergence
