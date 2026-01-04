@@ -6,6 +6,7 @@
 #' @param output_dir Directory for output file (default: current directory)
 #' @param start_date Start date for filtering data (default: 2017-12-31)
 #' @param end_date End date for filtering data (default: NULL, no upper bound)
+#' @param decomposition_metric Metric for price decomposition (default: "nopat")
 #' @param s3_bucket S3 bucket name
 #' @param aws_region AWS region
 #'
@@ -16,6 +17,7 @@ render_price_report <- function(
     output_dir = "output",
     start_date = as.Date("2017-12-31"),
     end_date = NULL,
+    decomposition_metric = "nopat",
     s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
     aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
@@ -79,6 +81,7 @@ render_price_report <- function(
     ticker = ticker,
     start_date = start_date,
     end_date = end_date,
+    metric = decomposition_metric,
     artifacts = artifacts,
     s3_bucket = s3_bucket,
     aws_region = aws_region

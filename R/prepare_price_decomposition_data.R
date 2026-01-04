@@ -1,10 +1,11 @@
 #' Prepare Price Decomposition Data
 #'
-#' Prepares data for price decomposition chart using NOPAT per share.
+#' Prepares data for price decomposition chart.
 #'
 #' @param ticker Character string for the ticker symbol
 #' @param start_date Start date for filtering (default: 2017-12-31)
 #' @param end_date End date for filtering (default: NULL)
+#' @param metric Short metric name (default: "nopat"). See get_metric_config() for options.
 #' @param artifacts Optional pre-loaded artifacts list
 #' @param cache_dir Directory for cache files
 #' @param max_cache_age_days Maximum cache age before refresh
@@ -17,6 +18,7 @@ prepare_price_decomposition_data <- function(
     ticker,
     start_date = as.Date("2017-12-31"),
     end_date = NULL,
+    metric = "nopat",
     artifacts = NULL,
     cache_dir = "~/.cache/msdataviz",
     max_cache_age_days = 1,
@@ -24,6 +26,8 @@ prepare_price_decomposition_data <- function(
     aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
+
+  metric_config <- get_metric_config(metric)
 
   if (is.null(artifacts)) {
     artifacts <- get_cached_artifacts(
@@ -37,8 +41,6 @@ prepare_price_decomposition_data <- function(
   price_data <- artifacts$price_data
   ttm_data <- artifacts$ttm_data
 
-  # Filter prices to date range
-
   ticker_prices <- price_data %>%
     dplyr::filter(ticker == !!ticker, date >= start_date) %>%
     dplyr::select(date, price = adjusted_close) %>%
@@ -49,30 +51,23 @@ prepare_price_decomposition_data <- function(
       dplyr::filter(date <= end_date)
   }
 
-  # Calculate NOPAT per share from components (following prepare_valuation_data pattern)
+  required_ttm_cols <- c(
+    "fiscalDateEnding",
+    "commonStockSharesOutstanding",
+    metric_config$ttm_columns
+  )
+
   ticker_ttm <- ttm_data %>%
     dplyr::filter(ticker == !!ticker) %>%
-    dplyr::select(
-      fiscalDateEnding,
-      commonStockSharesOutstanding,
-      ebit_ttm,
-      depreciationAndAmortization_ttm,
-      depreciation_ttm
-    ) %>%
+    dplyr::select(dplyr::all_of(required_ttm_cols)) %>%
     dplyr::mutate(
-      ebit_per_share = ebit_ttm / commonStockSharesOutstanding,
-      dep_amort_per_share = depreciationAndAmortization_ttm / commonStockSharesOutstanding,
-      depreciation_per_share = depreciation_ttm / commonStockSharesOutstanding,
-      fundamental_per_share = avpipeline:::calculate_nopat_per_share(
-        ebit_per_share,
-        dep_amort_per_share,
-        depreciation_per_share
-      )
+      fundamental_per_share = calculate_fundamental_per_share(., metric_config),
+      shares_outstanding = commonStockSharesOutstanding
     ) %>%
     dplyr::select(
       date = fiscalDateEnding,
       fundamental_per_share,
-      shares_outstanding = commonStockSharesOutstanding
+      shares_outstanding
     ) %>%
     dplyr::arrange(date)
 
@@ -80,12 +75,11 @@ prepare_price_decomposition_data <- function(
     return(list(
       decomposition_data = NULL,
       ticker = ticker,
-      metric_display_name = "NOPAT",
+      metric_display_name = metric_config$display_name,
       base_date = NULL
     ))
   }
 
-  # Join and forward-fill quarterly data to daily
   decomposition_input <- ticker_prices %>%
     dplyr::left_join(ticker_ttm, by = "date") %>%
     tidyr::fill(fundamental_per_share, shares_outstanding, .direction = "down") %>%
@@ -100,7 +94,7 @@ prepare_price_decomposition_data <- function(
     return(list(
       decomposition_data = NULL,
       ticker = ticker,
-      metric_display_name = "NOPAT",
+      metric_display_name = metric_config$display_name,
       base_date = NULL
     ))
   }
@@ -115,7 +109,7 @@ prepare_price_decomposition_data <- function(
   list(
     decomposition_data = decomposition_data,
     ticker = ticker,
-    metric_display_name = "NOPAT",
+    metric_display_name = metric_config$display_name,
     base_date = base_date
   )
 }

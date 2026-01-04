@@ -8,6 +8,7 @@ prepare_price_decomposition_data(
   ticker,
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
+  metric = "nopat",
   artifacts = NULL,
   cache_dir = "~/.cache/msdataviz",
   max_cache_age_days = 1,
@@ -21,6 +22,8 @@ prepare_price_decomposition_data(
 \item{start_date}{Start date for filtering (default: 2017-12-31)}
 
 \item{end_date}{End date for filtering (default: NULL)}
+
+\item{metric}{Short metric name (default: "nopat"). See get_metric_config() for options.}
 
 \item{artifacts}{Optional pre-loaded artifacts list}
 
@@ -36,5 +39,5 @@ prepare_price_decomposition_data(
 List with: decomposition_data, ticker, metric_display_name, base_date
 }
 \description{
-Prepares data for price decomposition chart using NOPAT per share.
+Prepares data for price decomposition chart.
 }
