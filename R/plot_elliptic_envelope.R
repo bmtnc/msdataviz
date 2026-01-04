@@ -107,27 +107,22 @@ plot_elliptic_envelope <- function(
   }
 
   # Define colors - distinct colors for subsector vs sector peers
-  # Subsector peers: darker, more saturated
-  # Sector peers (different subsector): lighter, more transparent
   point_colors <- c(
-    "target" = "navy",
+    "target" = "#FFD700",               # Bright gold for target ticker
     "same_group" = "#2C3E50",           # Dark charcoal for subsector peers
     "same_group_outlier" = "#C0392B",   # Dark red for subsector outliers
     "other" = "#BDC3C7",                # Light gray for sector peers
     "other_outlier" = "#F5B7B1"         # Light pink for sector outliers
   )
 
-  # Point sizes - subsector peers larger
-  point_sizes <- c(
-    "target" = 4.5,
-    "same_group" = 3.0,
-    "same_group_outlier" = 3.0,
-    "other" = 1.8,
-    "other_outlier" = 1.8
-  )
+  # Point sizes - all same size
+ point_size <- 2.0
 
   # Build plot
   p <- ggplot2::ggplot() +
+    # Zero reference lines (bottom layer)
+    ggplot2::geom_hline(yintercept = 0, color = "gray40", linewidth = 0.5, linetype = "dashed") +
+    ggplot2::geom_vline(xintercept = 0, color = "gray40", linewidth = 0.5, linetype = "dashed") +
     # Ellipse boundary
     ggplot2::geom_path(
       data = ellipse_df,
@@ -141,7 +136,7 @@ plot_elliptic_envelope <- function(
       data = plot_data %>% dplyr::filter(point_category == "other"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["other"],
-      size = point_sizes["other"],
+      size = point_size,
       alpha = 0.3
     ) +
     # Other sector outliers - slightly more visible but still faded
@@ -149,31 +144,31 @@ plot_elliptic_envelope <- function(
       data = plot_data %>% dplyr::filter(point_category == "other_outlier"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["other_outlier"],
-      size = point_sizes["other_outlier"],
+      size = point_size,
       alpha = 0.5
     ) +
-    # Same subsector points - fully opaque, dark
+    # Same subsector points - semi-transparent
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "same_group"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["same_group"],
-      size = point_sizes["same_group"],
-      alpha = 1.0
+      size = point_size,
+      alpha = 0.7
     ) +
-    # Same subsector outliers - fully opaque, dark red
+    # Same subsector outliers - semi-transparent
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "same_group_outlier"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["same_group_outlier"],
-      size = point_sizes["same_group_outlier"],
-      alpha = 1.0
+      size = point_size,
+      alpha = 0.7
     ) +
-    # Target ticker (top layer) - fully opaque
+    # Target ticker (top layer) - fully opaque, bright gold, larger
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "target"),
       ggplot2::aes(x = x_val, y = y_val),
       color = point_colors["target"],
-      size = point_sizes["target"],
+      size = 4.0,
       alpha = 1.0
     ) +
     ggplot2::labs(
@@ -190,15 +185,18 @@ plot_elliptic_envelope <- function(
       )
     )
 
-  # Add outlier labels if requested - for all outliers in sector plus target ticker
-  if (show_outlier_labels) {
-    outlier_data <- plot_data %>%
-      dplyr::filter(is_outlier | ticker == target_ticker)
 
-    if (nrow(outlier_data) > 0) {
+  # Add outlier labels if requested - only for subsector peers that are outliers
+  if (show_outlier_labels) {
+    label_data <- plot_data %>%
+      dplyr::filter(
+        (group == target_group & is_outlier) | ticker == target_ticker
+      )
+
+    if (nrow(label_data) > 0) {
       p <- p +
         ggrepel::geom_text_repel(
-          data = outlier_data,
+          data = label_data,
           ggplot2::aes(x = x_val, y = y_val, label = ticker),
           size = 2.5,
           max.overlaps = 20,
@@ -209,7 +207,7 @@ plot_elliptic_envelope <- function(
   }
 
 
-  # Add axis formatting
+  # Add axis formatting with 10% intervals
   # x_as_percent: transforms data (x100) AND adds % with +/- signs
   # x_pct_labels: just adds % to existing values (no transformation)
   # y_pct_labels: just adds % to existing values
@@ -217,19 +215,21 @@ plot_elliptic_envelope <- function(
     p <- p +
       ggplot2::scale_x_continuous(
         labels = function(x) paste0(ifelse(x > 0, "+", ""), x, "%"),
-        breaks = seq(-200, 400, by = 20)
+        breaks = seq(-200, 400, by = 10)
       )
   } else if (x_pct_labels) {
     p <- p +
       ggplot2::scale_x_continuous(
-        labels = function(x) paste0(x, "%")
+        labels = function(x) paste0(x, "%"),
+        breaks = seq(-200, 400, by = 20)
       )
   }
 
   if (y_pct_labels) {
     p <- p +
       ggplot2::scale_y_continuous(
-        labels = function(y) paste0(y, "%")
+        labels = function(y) paste0(y, "%"),
+        breaks = seq(-200, 400, by = 10)
       )
   }
 

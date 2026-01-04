@@ -52,7 +52,7 @@ render_price_report <- function(
     aws_region = aws_region
   )
 
-  drawdown_anomaly_result <- prepare_drawdown_anomaly_data(
+  momentum_anomaly_result <- prepare_momentum_anomaly_data(
     ticker = ticker,
     artifacts = artifacts,
     s3_bucket = s3_bucket,
@@ -129,7 +129,7 @@ render_price_report <- function(
       roic_n_subsector_stocks = roic_result$n_subsector_stocks,
       roic_n_industry_stocks = roic_result$n_industry_stocks,
       anomaly_data = anomaly_result$data,
-      drawdown_anomaly_data = drawdown_anomaly_result$data,
+      momentum_anomaly_data = momentum_anomaly_result$data,
       rolling_beta_data = rolling_beta_data
     ),
     quiet = TRUE

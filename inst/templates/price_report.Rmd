@@ -23,7 +23,7 @@ params:
   roic_n_subsector_stocks: 0
   roic_n_industry_stocks: 0
   anomaly_data: NULL
-  drawdown_anomaly_data: NULL
+  momentum_anomaly_data: NULL
   rolling_beta_data: NULL
 ---
 
@@ -134,27 +134,27 @@ plot_elliptic_envelope(
 )
 ```
 
-## Price Momentum Anomaly Detection
+## Momentum Divergence
 
-```{r anomaly-drawdown, fig.width=10, fig.height=8}
-envelope_dd <- fit_elliptic_envelope(
-  params$drawdown_anomaly_data$ttm_return,
-  params$drawdown_anomaly_data$drawdown_pct,
+```{r anomaly-momentum, fig.width=10, fig.height=8}
+envelope_momentum <- fit_elliptic_envelope(
+  params$momentum_anomaly_data$ttm_return,
+  params$momentum_anomaly_data$return_3m,
   contamination = 0.1
 )
 
 plot_elliptic_envelope(
-  data = params$drawdown_anomaly_data,
+  data = params$momentum_anomaly_data,
   x_col = "ttm_return",
-  y_col = "drawdown_pct",
+  y_col = "return_3m",
   ticker_col = "ticker",
   group_col = "subsector",
   target_ticker = params$ticker,
   target_group = params$subsector_name,
-  envelope_fit = envelope_dd,
-  x_label = "TTM Return",
-  y_label = "Drawdown from 52w High",
-  x_as_percent = TRUE,
+  envelope_fit = envelope_momentum,
+  x_label = "TTM Return (%)",
+  y_label = "3-Month Return (%)",
+  x_pct_labels = TRUE,
   y_pct_labels = TRUE,
   n_sector_stocks = params$n_sector_stocks,
   n_subsector_stocks = params$n_subsector_stocks,
