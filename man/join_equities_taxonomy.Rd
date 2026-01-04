@@ -7,11 +7,12 @@
 join_equities_taxonomy(ttm_data)
 }
 \arguments{
-\item{ttm_data}{TTM artifact tibble with \code{industry} column}
+\item{ttm_data}{TTM artifact tibble with \code{sector} and \code{industry} columns}
 }
 \value{
-TTM data with \code{subsector} column added
+TTM data with \code{subsector} column added; sector/subsector/industry in snake_case
 }
 \description{
 Left joins subsector taxonomy onto TTM artifact by industry.
+Converts sector, subsector, and industry to snake_case for consistent internal use.
 }

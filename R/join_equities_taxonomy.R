@@ -1,12 +1,13 @@
 #' Join Equities Taxonomy to TTM Data
 #'
 #' Left joins subsector taxonomy onto TTM artifact by industry.
+#' Converts sector, subsector, and industry to snake_case for consistent internal use.
 #'
-#' @param ttm_data TTM artifact tibble with `industry` column
-#' @return TTM data with `subsector` column added
+#' @param ttm_data TTM artifact tibble with `sector` and `industry` columns
+#' @return TTM data with `subsector` column added; sector/subsector/industry in snake_case
 #' @export
 join_equities_taxonomy <- function(ttm_data) {
-  avpipeline::validate_df_cols(ttm_data, "industry")
+  avpipeline::validate_df_cols(ttm_data, c("sector", "industry"))
 
   taxonomy <- equities_taxonomy()
 
@@ -29,5 +30,10 @@ join_equities_taxonomy <- function(ttm_data) {
     )
   }
 
-  result
+  result %>%
+    dplyr::mutate(
+      sector = to_snake_case(sector),
+      subsector = to_snake_case(subsector),
+      industry = to_snake_case(industry)
+    )
 }
