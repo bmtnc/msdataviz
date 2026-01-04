@@ -28,6 +28,7 @@ params:
   rolling_beta_data: NULL
   decomposition_data: NULL
   decomposition_metric_display_name: "NOPAT"
+  decomposition_numerator: "price"
   decomposition_base_date: NULL
 ---
 
@@ -44,7 +45,8 @@ if (!is.null(params$decomposition_data) && nrow(params$decomposition_data) > 0) 
     decomposition_data = params$decomposition_data,
     ticker = params$ticker,
     base_date = params$decomposition_base_date,
-    metric_display_name = params$decomposition_metric_display_name
+    metric_display_name = params$decomposition_metric_display_name,
+    numerator = params$decomposition_numerator
   )
 }
 ```

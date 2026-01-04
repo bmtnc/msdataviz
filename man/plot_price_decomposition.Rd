@@ -9,6 +9,7 @@ plot_price_decomposition(
   ticker,
   base_date,
   metric_display_name = "NOPAT",
+  numerator = "price",
   title = NULL
 )
 }
@@ -21,11 +22,13 @@ plot_price_decomposition(
 
 \item{metric_display_name}{Display name for the metric in labels (default: "NOPAT")}
 
+\item{numerator}{Valuation numerator: "price" or "ev" (default: "price")}
+
 \item{title}{Optional custom title (default: auto-generated from ticker)}
 }
 \value{
 A ggplot2 object
 }
 \description{
-Creates a stacked area chart showing cumulative price change decomposition.
+Creates a stacked area chart showing cumulative price or EV change decomposition.
 }

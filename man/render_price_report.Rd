@@ -9,6 +9,7 @@ render_price_report(
   output_dir = "output",
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
+  decomposition_numerator = "price",
   decomposition_metric = "nopat",
   s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
   aws_region = Sys.getenv("AWS_REGION", "us-east-1")
@@ -22,6 +23,8 @@ render_price_report(
 \item{start_date}{Start date for filtering data (default: 2017-12-31)}
 
 \item{end_date}{End date for filtering data (default: NULL, no upper bound)}
+
+\item{decomposition_numerator}{Numerator for decomposition: "price" or "ev" (default: "price")}
 
 \item{decomposition_metric}{Metric for price decomposition (default: "nopat")}
 

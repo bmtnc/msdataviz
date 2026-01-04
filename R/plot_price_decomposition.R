@@ -1,11 +1,12 @@
 #' Create Price Decomposition Stacked Area Chart
 #'
-#' Creates a stacked area chart showing cumulative price change decomposition.
+#' Creates a stacked area chart showing cumulative price or EV change decomposition.
 #'
 #' @param decomposition_data Data frame with decomposition columns from calculate_price_decomposition
 #' @param ticker Character string for the ticker symbol
 #' @param base_date Date object for the start of the decomposition period
 #' @param metric_display_name Display name for the metric in labels (default: "NOPAT")
+#' @param numerator Valuation numerator: "price" or "ev" (default: "price")
 #' @param title Optional custom title (default: auto-generated from ticker)
 #'
 #' @return A ggplot2 object
@@ -15,6 +16,7 @@ plot_price_decomposition <- function(
     ticker,
     base_date,
     metric_display_name = "NOPAT",
+    numerator = "price",
     title = NULL
 ) {
   required_cols <- c(
@@ -24,6 +26,8 @@ plot_price_decomposition <- function(
   avpipeline::validate_df_cols(decomposition_data, required_cols)
   avpipeline::validate_non_empty(decomposition_data, "decomposition_data")
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
+
+  numerator_label <- if (numerator == "ev") "EV" else "Price"
 
   current_data <- decomposition_data %>%
     dplyr::slice_tail(n = 1)
@@ -52,7 +56,7 @@ plot_price_decomposition <- function(
       fundamental_label, " | ", share_label, " | ", valuation_label
     )
   } else {
-    subtitle_text <- "No significant price change to analyze"
+    subtitle_text <- paste0("No significant ", tolower(numerator_label), " change to analyze")
   }
 
   # Prepare plot data
@@ -79,7 +83,11 @@ plot_price_decomposition <- function(
   names(color_values) <- c(metric_label, "\u0394 Share Count", "\u0394 Valuation")
 
   callout_text <- paste0("$", round(current_data$price, 2), "\n", round(current_data$multiple, 1), "x")
-  plot_title <- if (is.null(title)) paste0(ticker, ": Cumulative Price Change Decomposition") else title
+  plot_title <- if (is.null(title)) {
+    paste0(ticker, ": Cumulative ", numerator_label, " Change Decomposition")
+  } else {
+    title
+  }
 
   date_range <- diff(range(decomposition_data$date))
   max_price_change <- max(decomposition_data$price_change, na.rm = TRUE)
@@ -120,10 +128,10 @@ plot_price_decomposition <- function(
       title = plot_title,
       subtitle = subtitle_text,
       x = NULL,
-      y = "Cumulative Price Change ($)",
+      y = paste0("Cumulative ", numerator_label, " Change ($)"),
       fill = "",
       caption = paste0(
-        "Methodology: Price = ", metric_display_name, " per Share x Valuation Multiple\nStart Date: ", base_date
+        "Methodology: ", numerator_label, " = ", metric_display_name, " per Share x Valuation Multiple\nStart Date: ", base_date
       )
     ) +
     ggplot2::coord_cartesian(

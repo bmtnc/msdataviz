@@ -8,6 +8,7 @@ prepare_price_decomposition_data(
   ticker,
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
+  numerator = "price",
   metric = "nopat",
   artifacts = NULL,
   cache_dir = "~/.cache/msdataviz",
@@ -23,6 +24,8 @@ prepare_price_decomposition_data(
 
 \item{end_date}{End date for filtering (default: NULL)}
 
+\item{numerator}{Valuation numerator: "price" or "ev" (default: "price")}
+
 \item{metric}{Short metric name (default: "nopat"). See get_metric_config() for options.}
 
 \item{artifacts}{Optional pre-loaded artifacts list}
@@ -36,7 +39,7 @@ prepare_price_decomposition_data(
 \item{aws_region}{AWS region}
 }
 \value{
-List with: decomposition_data, ticker, metric_display_name, base_date
+List with: decomposition_data, ticker, metric_display_name, numerator, base_date
 }
 \description{
 Prepares data for price decomposition chart.

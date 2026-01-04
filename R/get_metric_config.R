@@ -24,6 +24,11 @@ get_metric_config <- function(metric) {
       ttm_columns = "grossProfit_ttm",
       is_calculated = FALSE
     ),
+    ebit = list(
+      display_name = "EBIT",
+      ttm_columns = "ebit_ttm",
+      is_calculated = FALSE
+    ),
     ebitda = list(
       display_name = "EBITDA",
       ttm_columns = "ebitda_ttm",
