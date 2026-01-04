@@ -4,7 +4,7 @@
 #'
 #' @param ticker Character string for the ticker symbol
 #' @param ttm_data Data frame with columns: ticker, industry
-#' @return Character string of the industry name (title case)
+#' @return Character string of the industry name (snake_case)
 #' @keywords internal
 get_ticker_industry <- function(ticker, ttm_data) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
@@ -19,6 +19,5 @@ get_ticker_industry <- function(ticker, ttm_data) {
     stop("Ticker '", ticker, "' not found in ttm_data")
   }
 
-  # Convert to title case
-  tools::toTitleCase(tolower(industry[1]))
+  industry[1]
 }
