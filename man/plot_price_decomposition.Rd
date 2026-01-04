@@ -7,21 +7,19 @@
 plot_price_decomposition(
   decomposition_data,
   ticker,
-  metric_name,
   base_date,
+  metric_display_name = "NOPAT",
   title = NULL
 )
 }
 \arguments{
-\item{decomposition_data}{Data frame with columns: date, price_change,
-nopat_growth_contribution, share_count_contribution, multiple_contribution,
-price, multiple}
+\item{decomposition_data}{Data frame with decomposition columns from calculate_price_decomposition}
 
 \item{ticker}{Character string for the ticker symbol}
 
-\item{metric_name}{Character string for the fundamental metric (e.g., "nopat_ttm_per_share")}
-
 \item{base_date}{Date object for the start of the decomposition period}
+
+\item{metric_display_name}{Display name for the metric in labels (default: "NOPAT")}
 
 \item{title}{Optional custom title (default: auto-generated from ticker)}
 }

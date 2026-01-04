@@ -75,6 +75,15 @@ render_price_report <- function(
     aws_region = aws_region
   )
 
+  decomposition_result <- prepare_price_decomposition_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
+
   # Prepare rolling beta data
   ttm_data <- artifacts$ttm_data
   sector_name <- get_ticker_sector(ticker, ttm_data)
@@ -138,7 +147,10 @@ render_price_report <- function(
       anomaly_data = anomaly_result$data,
       momentum_anomaly_data = momentum_anomaly_result$data,
       dupont_anomaly_data = dupont_anomaly_result$data,
-      rolling_beta_data = rolling_beta_data
+      rolling_beta_data = rolling_beta_data,
+      decomposition_data = decomposition_result$decomposition_data,
+      decomposition_metric_display_name = decomposition_result$metric_display_name,
+      decomposition_base_date = decomposition_result$base_date
     ),
     quiet = TRUE
   )

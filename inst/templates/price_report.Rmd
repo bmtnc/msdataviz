@@ -26,11 +26,27 @@ params:
   momentum_anomaly_data: NULL
   dupont_anomaly_data: NULL
   rolling_beta_data: NULL
+  decomposition_data: NULL
+  decomposition_metric_display_name: "NOPAT"
+  decomposition_base_date: NULL
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 set_ggplot_theme()
+```
+
+## Price Decomposition
+
+```{r decomposition-chart, fig.width=10, fig.height=6}
+if (!is.null(params$decomposition_data) && nrow(params$decomposition_data) > 0) {
+  plot_price_decomposition(
+    decomposition_data = params$decomposition_data,
+    ticker = params$ticker,
+    base_date = params$decomposition_base_date,
+    metric_display_name = params$decomposition_metric_display_name
+  )
+}
 ```
 
 ## Cumulative Return

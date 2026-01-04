@@ -68,7 +68,7 @@ calculate_price_decomposition <- function(data, base_date = NULL) {
     dplyr::mutate(
       fundamental_contribution = adjusted$a_adjusted,
       multiple_contribution = adjusted$b_adjusted,
-      nopat_growth_contribution = ifelse(
+      fundamental_growth_contribution = ifelse(
         abs(per_share$actual_change) > 1e-10,
         fundamental_contribution * per_share$growth_effect / per_share$actual_change,
         fundamental_contribution * 0.5
@@ -82,6 +82,6 @@ calculate_price_decomposition <- function(data, base_date = NULL) {
     dplyr::select(
       date, price, fundamental_per_share, shares_outstanding, total_fundamental, multiple,
       price_change, fundamental_contribution, multiple_contribution,
-      nopat_growth_contribution, share_count_contribution
+      fundamental_growth_contribution, share_count_contribution
     )
 }
