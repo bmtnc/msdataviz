@@ -12,7 +12,7 @@ get_ticker_industry(ticker, ttm_data)
 \item{ttm_data}{Data frame with columns: ticker, industry}
 }
 \value{
-Character string of the industry name (title case)
+Character string of the industry name (snake_case)
 }
 \description{
 Looks up the industry for a given ticker from TTM data.

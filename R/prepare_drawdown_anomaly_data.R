@@ -33,10 +33,12 @@ prepare_drawdown_anomaly_data <- function(
   price_data <- artifacts$price_data
   ttm_data <- artifacts$ttm_data
 
-  # Get sector and industry for target ticker
+  # Get sector, subsector, and industry for target ticker
   sector_name <- get_ticker_sector(ticker, ttm_data)
+  subsector_name <- get_ticker_subsector(ticker, ttm_data)
   industry_name <- get_ticker_industry(ticker, ttm_data)
   sector_tickers <- get_sector_tickers(sector_name, ttm_data)
+  subsector_tickers <- get_subsector_tickers(subsector_name, ttm_data)
 
   # Get latest price and calculate 52-week high for each ticker
   latest_date <- max(price_data$date)
@@ -72,30 +74,32 @@ prepare_drawdown_anomaly_data <- function(
     dplyr::ungroup() %>%
     dplyr::select(ticker, price_1y = adjusted_close)
 
-  # Get industry for each ticker
-  ticker_industries <- ttm_data %>%
+  # Get subsector and industry for each ticker
+  ticker_classifications <- ttm_data %>%
     dplyr::filter(ticker %in% sector_tickers) %>%
     dplyr::group_by(ticker) %>%
     dplyr::slice(1) %>%
     dplyr::ungroup() %>%
-    dplyr::select(ticker, industry)
+    dplyr::select(ticker, subsector, industry)
 
   # Join and calculate TTM return
   anomaly_data <- latest_drawdown %>%
     dplyr::inner_join(year_ago_prices, by = "ticker") %>%
-    dplyr::inner_join(ticker_industries, by = "ticker") %>%
+    dplyr::inner_join(ticker_classifications, by = "ticker") %>%
     dplyr::mutate(
       ttm_return = (latest_price / price_1y) - 1,
       # Express drawdown as positive percentage for easier interpretation
       drawdown_pct = latest_drawdown * 100
     ) %>%
     dplyr::filter(!is.na(ttm_return) & is.finite(ttm_return)) %>%
-    dplyr::select(ticker, industry, drawdown_pct, ttm_return)
+    dplyr::select(ticker, subsector, industry, drawdown_pct, ttm_return)
 
   list(
     data = anomaly_data,
     ticker = ticker,
     sector_name = sector_name,
-    industry_name = industry_name
+    subsector_name = subsector_name,
+    industry_name = industry_name,
+    n_subsector_stocks = length(subsector_tickers)
   )
 }

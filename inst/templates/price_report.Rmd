@@ -5,17 +5,22 @@ params:
   ticker: "TICKER"
   ticker_data: NULL
   sector_name: "Sector"
+  subsector_name: "Subsector"
   industry_name: "Industry"
   n_sector_stocks: 0
+  n_subsector_stocks: 0
   n_industry_stocks: 0
   sector_median_drawdown: NULL
+  subsector_median_drawdown: NULL
   industry_median_drawdown: NULL
   valuation_data: NULL
   valuation_metric_name: "EV to NOPAT"
   valuation_n_sector_stocks: 0
+  valuation_n_subsector_stocks: 0
   valuation_n_industry_stocks: 0
   roic_data: NULL
   roic_n_sector_stocks: 0
+  roic_n_subsector_stocks: 0
   roic_n_industry_stocks: 0
   anomaly_data: NULL
   drawdown_anomaly_data: NULL
@@ -34,8 +39,10 @@ plot_cumulative_return(
   params$ticker_data,
   params$ticker,
   sector_name = params$sector_name,
+  subsector_name = params$subsector_name,
   industry_name = params$industry_name,
   n_sector_stocks = params$n_sector_stocks,
+  n_subsector_stocks = params$n_subsector_stocks,
   n_industry_stocks = params$n_industry_stocks
 )
 ```
@@ -47,10 +54,13 @@ plot_drawdown(
   params$ticker_data,
   params$ticker,
   sector_median_drawdown = params$sector_median_drawdown,
+  subsector_median_drawdown = params$subsector_median_drawdown,
   industry_median_drawdown = params$industry_median_drawdown,
   sector_name = params$sector_name,
+  subsector_name = params$subsector_name,
   industry_name = params$industry_name,
   n_sector_stocks = params$n_sector_stocks,
+  n_subsector_stocks = params$n_subsector_stocks,
   n_industry_stocks = params$n_industry_stocks
 ) %>%
   add_data_callout(label_fn = scales::percent)
@@ -75,8 +85,10 @@ p_valuation <- plot_valuation_ratio(
   params$ticker,
   metric_name = params$valuation_metric_name,
   sector_name = params$sector_name,
+  subsector_name = params$subsector_name,
   industry_name = params$industry_name,
   n_sector_stocks = params$valuation_n_sector_stocks,
+  n_subsector_stocks = params$valuation_n_subsector_stocks,
   n_industry_stocks = params$valuation_n_industry_stocks
 )
 
@@ -84,8 +96,10 @@ p_roic <- plot_roic(
   params$roic_data,
   params$ticker,
   sector_name = params$sector_name,
+  subsector_name = params$subsector_name,
   industry_name = params$industry_name,
   n_sector_stocks = params$roic_n_sector_stocks,
+  n_subsector_stocks = params$roic_n_subsector_stocks,
   n_industry_stocks = params$roic_n_industry_stocks
 )
 
@@ -106,17 +120,17 @@ plot_elliptic_envelope(
   x_col = "roic_pct",
   y_col = "ev_nopat",
   ticker_col = "ticker",
-  group_col = "industry",
+  group_col = "subsector",
   target_ticker = params$ticker,
-  target_group = params$industry_name,
+  target_group = params$subsector_name,
   envelope_fit = envelope_roic,
   x_label = "ROIC",
   y_label = "EV to NOPAT",
   x_pct_labels = TRUE,
   n_sector_stocks = params$valuation_n_sector_stocks,
-  n_industry_stocks = params$valuation_n_industry_stocks,
+  n_subsector_stocks = params$valuation_n_subsector_stocks,
   sector_name = params$sector_name,
-  industry_name = params$industry_name
+  subsector_name = params$subsector_name
 )
 ```
 
@@ -134,17 +148,17 @@ plot_elliptic_envelope(
   x_col = "ttm_return",
   y_col = "drawdown_pct",
   ticker_col = "ticker",
-  group_col = "industry",
+  group_col = "subsector",
   target_ticker = params$ticker,
-  target_group = params$industry_name,
+  target_group = params$subsector_name,
   envelope_fit = envelope_dd,
   x_label = "TTM Return",
   y_label = "Drawdown from 52w High",
   x_as_percent = TRUE,
   y_pct_labels = TRUE,
   n_sector_stocks = params$n_sector_stocks,
-  n_industry_stocks = params$n_industry_stocks,
+  n_subsector_stocks = params$n_subsector_stocks,
   sector_name = params$sector_name,
-  industry_name = params$industry_name
+  subsector_name = params$subsector_name
 )
 ```

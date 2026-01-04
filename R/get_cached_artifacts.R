@@ -56,6 +56,10 @@ get_cached_artifacts <- function(
     region = aws_region
   )
 
+
+  # Enrich TTM data with subsector and standardize to snake_case
+  ttm_data <- join_equities_taxonomy(ttm_data)
+
   # Save to cache
 
   saveRDS(price_data, price_cache)

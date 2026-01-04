@@ -9,15 +9,18 @@ plot_valuation_ratio(
   ticker,
   metric_name = "EV to NOPAT",
   sector_name = "Sector",
+  subsector_name = "Subsector",
   industry_name = "Industry",
   n_sector_stocks = NULL,
+  n_subsector_stocks = NULL,
   n_industry_stocks = NULL,
+  min_subsector_stocks = 10,
   min_industry_stocks = 10
 )
 }
 \arguments{
 \item{data}{Data frame with columns: date, valuation_ratio, and optionally
-sector_valuation_ratio and industry_valuation_ratio}
+sector_valuation_ratio, subsector_valuation_ratio, and industry_valuation_ratio}
 
 \item{ticker}{Character string for the ticker symbol}
 
@@ -25,11 +28,17 @@ sector_valuation_ratio and industry_valuation_ratio}
 
 \item{sector_name}{Sector name for legend}
 
+\item{subsector_name}{Subsector name for legend}
+
 \item{industry_name}{Industry name for legend}
 
 \item{n_sector_stocks}{Number of stocks in sector for caption}
 
+\item{n_subsector_stocks}{Number of stocks in subsector for caption}
+
 \item{n_industry_stocks}{Number of stocks in industry for caption}
+
+\item{min_subsector_stocks}{Minimum stocks required to show subsector line (default: 10)}
 
 \item{min_industry_stocks}{Minimum stocks required to show industry line (default: 10)}
 }
@@ -37,6 +46,6 @@ sector_valuation_ratio and industry_valuation_ratio}
 A ggplot2 object
 }
 \description{
-Creates a line chart showing valuation ratio with sector and industry medians.
-Industry line is only shown if sample size is sufficient (>= 10 stocks).
+Creates a line chart showing valuation ratio with sector, subsector, and industry medians.
+Subsector and industry lines are only shown if sample size is sufficient (>= 10 stocks).
 }

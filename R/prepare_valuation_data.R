@@ -37,10 +37,12 @@ prepare_valuation_data <- function(
   price_data <- artifacts$price_data
   ttm_data <- artifacts$ttm_data
 
-  # Get sector and industry info
+  # Get sector, subsector, and industry info
   sector_name <- get_ticker_sector(ticker, ttm_data)
+  subsector_name <- get_ticker_subsector(ticker, ttm_data)
   industry_name <- get_ticker_industry(ticker, ttm_data)
   sector_tickers <- get_sector_tickers(sector_name, ttm_data)
+  subsector_tickers <- get_subsector_tickers(subsector_name, ttm_data)
   industry_tickers <- get_industry_tickers(industry_name, ttm_data)
 
   # Select columns needed for EV/NOPAT calculation
@@ -83,12 +85,18 @@ prepare_valuation_data <- function(
 
   ticker_valuation <- build_daily_ev_nopat(filtered_prices, ttm_subset, ticker)
   sector_valuation <- calculate_sector_ev_nopat(filtered_prices, ttm_subset, sector_tickers)
+  subsector_valuation <- calculate_sector_ev_nopat(filtered_prices, ttm_subset, subsector_tickers)
   industry_valuation <- calculate_sector_ev_nopat(filtered_prices, ttm_subset, industry_tickers)
 
   valuation_data <- ticker_valuation %>%
     dplyr::left_join(
       sector_valuation %>%
         dplyr::select(date, sector_valuation_ratio),
+      by = "date"
+    ) %>%
+    dplyr::left_join(
+      subsector_valuation %>%
+        dplyr::select(date, subsector_valuation_ratio = sector_valuation_ratio),
       by = "date"
     ) %>%
     dplyr::left_join(
@@ -101,8 +109,10 @@ prepare_valuation_data <- function(
     valuation_data = valuation_data,
     ticker = ticker,
     sector_name = sector_name,
+    subsector_name = subsector_name,
     industry_name = industry_name,
     n_sector_stocks = length(sector_tickers),
+    n_subsector_stocks = length(subsector_tickers),
     n_industry_stocks = length(industry_tickers),
     metric_name = "EV to NOPAT"
   )

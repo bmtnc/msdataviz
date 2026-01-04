@@ -12,7 +12,7 @@ get_ticker_sector(ticker, ttm_data)
 \item{ttm_data}{Data frame with columns: ticker, sector}
 }
 \value{
-Character string of the sector name
+Character string of the sector name (snake_case)
 }
 \description{
 Looks up the sector for a given ticker from TTM data.

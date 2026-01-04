@@ -36,10 +36,12 @@ prepare_price_report_data <- function(
   price_data <- artifacts$price_data
   ttm_data <- artifacts$ttm_data
 
-  # Get sector and industry info
+  # Get sector, subsector, and industry info
   sector_name <- get_ticker_sector(ticker, ttm_data)
+  subsector_name <- get_ticker_subsector(ticker, ttm_data)
   industry_name <- get_ticker_industry(ticker, ttm_data)
   sector_tickers <- get_sector_tickers(sector_name, ttm_data)
+  subsector_tickers <- get_subsector_tickers(subsector_name, ttm_data)
   industry_tickers <- get_industry_tickers(industry_name, ttm_data)
 
   # Filter price data to date range
@@ -55,6 +57,12 @@ prepare_price_report_data <- function(
   sector_data <- calculate_sector_index(
     price_data = filtered_prices,
     sector_tickers = sector_tickers
+  )
+
+  # Calculate subsector index
+  subsector_data <- calculate_sector_index(
+    price_data = filtered_prices,
+    sector_tickers = subsector_tickers
   )
 
   # Calculate industry index
@@ -79,11 +87,20 @@ prepare_price_report_data <- function(
     stop("No data returned for ticker '", ticker, "'")
   }
 
-  # Join sector data to ticker data
+  # Join sector, subsector, and industry data to ticker data
   ticker_data <- ticker_data %>%
     dplyr::left_join(
       sector_data %>%
         dplyr::select(date, sector_cumulative_return, sector_drawdown),
+      by = "date"
+    ) %>%
+    dplyr::left_join(
+      subsector_data %>%
+        dplyr::select(
+          date,
+          subsector_cumulative_return = sector_cumulative_return,
+          subsector_drawdown = sector_drawdown
+        ),
       by = "date"
     ) %>%
     dplyr::left_join(
@@ -96,12 +113,17 @@ prepare_price_report_data <- function(
       by = "date"
     )
 
-  # Calculate median current drawdown across sector and industry stocks
+  # Calculate median current drawdown across sector, subsector, and industry stocks
   latest_date <- max(filtered_prices$date, na.rm = TRUE)
 
   sector_current_drawdowns <- calculate_current_drawdowns(
     filtered_prices,
     sector_tickers,
+    latest_date
+  )
+  subsector_current_drawdowns <- calculate_current_drawdowns(
+    filtered_prices,
+    subsector_tickers,
     latest_date
   )
   industry_current_drawdowns <- calculate_current_drawdowns(
@@ -111,16 +133,20 @@ prepare_price_report_data <- function(
   )
 
   sector_median_drawdown <- median(sector_current_drawdowns, na.rm = TRUE)
+  subsector_median_drawdown <- median(subsector_current_drawdowns, na.rm = TRUE)
   industry_median_drawdown <- median(industry_current_drawdowns, na.rm = TRUE)
 
   list(
     ticker_data = ticker_data,
     ticker = ticker,
     sector_name = sector_name,
+    subsector_name = subsector_name,
     industry_name = industry_name,
     n_sector_stocks = length(sector_tickers),
+    n_subsector_stocks = length(subsector_tickers),
     n_industry_stocks = length(industry_tickers),
     sector_median_drawdown = sector_median_drawdown,
+    subsector_median_drawdown = subsector_median_drawdown,
     industry_median_drawdown = industry_median_drawdown
   )
 }

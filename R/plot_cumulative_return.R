@@ -1,16 +1,19 @@
 #' Create Cumulative Return Chart
 #'
-#' Creates a line chart showing cumulative returns with sector and industry overlays.
-#' Includes data callouts for all lines. Industry line is only shown if sample size
-#' is sufficient (>= 10 stocks).
+#' Creates a line chart showing cumulative returns with sector, subsector, and
+#' industry overlays. Includes data callouts for all lines. Subsector and industry
+#' lines are only shown if sample size is sufficient (>= 10 stocks).
 #'
 #' @param data Data frame with columns: date, cumulative_return, and optionally
-#'   sector_cumulative_return and industry_cumulative_return
+#'   sector_cumulative_return, subsector_cumulative_return, and industry_cumulative_return
 #' @param ticker Character string for the ticker symbol
 #' @param sector_name Sector name for legend
+#' @param subsector_name Subsector name for legend
 #' @param industry_name Industry name for legend
 #' @param n_sector_stocks Number of stocks in sector for caption
+#' @param n_subsector_stocks Number of stocks in subsector for caption
 #' @param n_industry_stocks Number of stocks in industry for caption
+#' @param min_subsector_stocks Minimum stocks required to show subsector line (default: 10)
 #' @param min_industry_stocks Minimum stocks required to show industry line (default: 10)
 #'
 #' @return A ggplot2 object
@@ -19,9 +22,12 @@ plot_cumulative_return <- function(
     data,
     ticker,
     sector_name = "Sector",
+    subsector_name = "Subsector",
     industry_name = "Industry",
     n_sector_stocks = NULL,
+    n_subsector_stocks = NULL,
     n_industry_stocks = NULL,
+    min_subsector_stocks = 10,
     min_industry_stocks = 10
 ) {
   avpipeline::validate_df_cols(data, c("date", "cumulative_return"))
@@ -29,24 +35,37 @@ plot_cumulative_return <- function(
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
 
   has_sector <- "sector_cumulative_return" %in% names(data)
+  # Only show subsector line if we have sufficient sample size
+  has_subsector <- "subsector_cumulative_return" %in% names(data) &&
+    !is.null(n_subsector_stocks) &&
+    n_subsector_stocks >= min_subsector_stocks
   # Only show industry line if we have sufficient sample size
   has_industry <- "industry_cumulative_return" %in% names(data) &&
     !is.null(n_industry_stocks) &&
     n_industry_stocks >= min_industry_stocks
 
   # Build caption with population counts (each on separate line)
+  # Convert snake_case names to display case for labels
+  sector_display <- to_display_case(sector_name)
+  subsector_display <- to_display_case(subsector_name)
+  industry_display <- to_display_case(industry_name)
+
   caption_parts <- c()
   if (!is.null(n_sector_stocks)) {
-    caption_parts <- c(caption_parts, paste0(sector_name, " population: ", n_sector_stocks))
+    caption_parts <- c(caption_parts, paste0(sector_display, " population: ", n_sector_stocks))
+  }
+  if (!is.null(n_subsector_stocks)) {
+    caption_parts <- c(caption_parts, paste0(subsector_display, " population: ", n_subsector_stocks))
   }
   if (!is.null(n_industry_stocks)) {
-    caption_parts <- c(caption_parts, paste0(industry_name, " population: ", n_industry_stocks))
+    caption_parts <- c(caption_parts, paste0(industry_display, " population: ", n_industry_stocks))
   }
   caption <- if (length(caption_parts) > 0) paste(caption_parts, collapse = "\n") else NULL
 
   # Legend labels
-  sector_legend <- paste0(sector_name, " (eq. wt. composite)")
-  industry_legend <- paste0(industry_name, " (eq. wt. composite)")
+  sector_legend <- paste0(sector_display, " (eq. wt. composite)")
+  subsector_legend <- paste0(subsector_display, " (eq. wt. composite)")
+  industry_legend <- paste0(industry_display, " (eq. wt. composite)")
 
   last_row <- data %>%
     dplyr::filter(date == max(date)) %>%
@@ -63,8 +82,12 @@ plot_cumulative_return <- function(
     color_values <- c(color_values, "gray50")
     color_names <- c(color_names, sector_legend)
   }
-  if (has_industry) {
+  if (has_subsector) {
     color_values <- c(color_values, "steelblue")
+    color_names <- c(color_names, subsector_legend)
+  }
+  if (has_industry) {
+    color_values <- c(color_values, "darkgreen")
     color_names <- c(color_names, industry_legend)
   }
 
@@ -80,7 +103,16 @@ plot_cumulative_return <- function(
       )
   }
 
-  # Industry line: thin, light blue (middle layer)
+  # Subsector line: thin, steelblue (middle layer)
+  if (has_subsector) {
+    p <- p +
+      ggplot2::geom_line(
+        ggplot2::aes(y = subsector_cumulative_return, color = subsector_legend),
+        linewidth = 0.5
+      )
+  }
+
+  # Industry line: thin, darkgreen (layer above subsector)
   if (has_industry) {
     p <- p +
       ggplot2::geom_line(
@@ -130,19 +162,37 @@ plot_cumulative_return <- function(
       )
   }
 
+  # Callouts for subsector
+  if (has_subsector) {
+    p <- p +
+      ggplot2::geom_point(
+        data = last_row,
+        ggplot2::aes(y = subsector_cumulative_return),
+        color = "steelblue",
+        size = 2.5
+      ) +
+      ggplot2::geom_text(
+        data = last_row,
+        ggplot2::aes(y = subsector_cumulative_return, label = scales::percent(subsector_cumulative_return, accuracy = 0.1)),
+        color = "steelblue",
+        hjust = -0.2,
+        size = 3
+      )
+  }
+
   # Callouts for industry
   if (has_industry) {
     p <- p +
       ggplot2::geom_point(
         data = last_row,
         ggplot2::aes(y = industry_cumulative_return),
-        color = "steelblue",
+        color = "darkgreen",
         size = 2.5
       ) +
       ggplot2::geom_text(
         data = last_row,
         ggplot2::aes(y = industry_cumulative_return, label = scales::percent(industry_cumulative_return, accuracy = 0.1)),
-        color = "steelblue",
+        color = "darkgreen",
         hjust = -0.2,
         size = 3
       )

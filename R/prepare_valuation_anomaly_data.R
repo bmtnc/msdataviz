@@ -33,10 +33,12 @@ prepare_valuation_anomaly_data <- function(
   price_data <- artifacts$price_data
   ttm_data <- artifacts$ttm_data
 
-  # Get sector and industry for target ticker
+  # Get sector, subsector, and industry for target ticker
   sector_name <- get_ticker_sector(ticker, ttm_data)
+  subsector_name <- get_ticker_subsector(ticker, ttm_data)
   industry_name <- get_ticker_industry(ticker, ttm_data)
   sector_tickers <- get_sector_tickers(sector_name, ttm_data)
+  subsector_tickers <- get_subsector_tickers(subsector_name, ttm_data)
 
   # Get latest price for each ticker
   latest_prices <- price_data %>%
@@ -77,7 +79,7 @@ prepare_valuation_anomaly_data <- function(
       roic = nopat_per_share / invested_capital_per_share
     ) %>%
     dplyr::select(
-      ticker, sector, industry, fiscalDateEnding,
+      ticker, sector, subsector, industry, fiscalDateEnding,
       nopat_per_share, debt_total_per_share, lease_obligations_per_share,
       cash_st_investments_per_share, lt_investments_per_share, invested_capital_per_share, roic
     )
@@ -164,12 +166,14 @@ prepare_valuation_anomaly_data <- function(
       roic_pct = roic * 100
     ) %>%
     dplyr::filter(!is.na(roic_pct) & is.finite(roic_pct)) %>%
-    dplyr::select(ticker, sector, industry, ev_nopat, ev_nopat_yoy_change, roic_pct)
+    dplyr::select(ticker, sector, subsector, industry, ev_nopat, ev_nopat_yoy_change, roic_pct)
 
   list(
     data = anomaly_data,
     ticker = ticker,
     sector_name = sector_name,
-    industry_name = industry_name
+    subsector_name = subsector_name,
+    industry_name = industry_name,
+    n_subsector_stocks = length(subsector_tickers)
   )
 }

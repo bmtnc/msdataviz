@@ -19,9 +19,9 @@
 #' @param x_pct_labels Whether to add % to x-axis labels (no transformation, for data already in %)
 #' @param y_pct_labels Whether to add % to y-axis labels (no transformation, for data already in %)
 #' @param n_sector_stocks Number of stocks in sector for caption
-#' @param n_industry_stocks Number of stocks in industry for caption
+#' @param n_subsector_stocks Number of stocks in subsector for caption
 #' @param sector_name Sector name for caption
-#' @param industry_name Industry name for caption
+#' @param subsector_name Subsector name for caption
 #'
 #' @return A ggplot2 object
 #' @export
@@ -42,9 +42,9 @@ plot_elliptic_envelope <- function(
     x_pct_labels = FALSE,
     y_pct_labels = FALSE,
     n_sector_stocks = NULL,
-    n_industry_stocks = NULL,
+    n_subsector_stocks = NULL,
     sector_name = "Sector",
-    industry_name = "Industry"
+    subsector_name = "Subsector"
 ) {
   avpipeline::validate_non_empty(data, "data")
 
@@ -67,12 +67,13 @@ plot_elliptic_envelope <- function(
     dplyr::filter(!is.na(x_val) & !is.na(y_val))
 
   # Build caption with population counts and winsorization note
+  # Convert snake_case names to display case for labels
   caption_parts <- c()
   if (!is.null(n_sector_stocks)) {
-    caption_parts <- c(caption_parts, paste0(sector_name, " population: ", n_sector_stocks))
+    caption_parts <- c(caption_parts, paste0(to_display_case(sector_name), " population: ", n_sector_stocks))
   }
-  if (!is.null(n_industry_stocks)) {
-    caption_parts <- c(caption_parts, paste0(industry_name, " population: ", n_industry_stocks))
+  if (!is.null(n_subsector_stocks)) {
+    caption_parts <- c(caption_parts, paste0(to_display_case(subsector_name), " population: ", n_subsector_stocks))
   }
   winsorize_pct <- envelope_fit$winsorize_pct * 100
   caption_parts <- c(
@@ -105,18 +106,18 @@ plot_elliptic_envelope <- function(
     ellipse_df$x <- ellipse_df$x * 100
   }
 
-  # Define colors - distinct colors for industry vs sector peers
-  # Industry peers: darker, more saturated
-  # Sector peers (different industry): lighter, more transparent
+  # Define colors - distinct colors for subsector vs sector peers
+  # Subsector peers: darker, more saturated
+  # Sector peers (different subsector): lighter, more transparent
   point_colors <- c(
     "target" = "navy",
-    "same_group" = "#2C3E50",           # Dark charcoal for industry peers
-    "same_group_outlier" = "#C0392B",   # Dark red for industry outliers
+    "same_group" = "#2C3E50",           # Dark charcoal for subsector peers
+    "same_group_outlier" = "#C0392B",   # Dark red for subsector outliers
     "other" = "#BDC3C7",                # Light gray for sector peers
     "other_outlier" = "#F5B7B1"         # Light pink for sector outliers
   )
 
-  # Point sizes - industry peers larger
+  # Point sizes - subsector peers larger
   point_sizes <- c(
     "target" = 4.5,
     "same_group" = 3.0,
@@ -151,7 +152,7 @@ plot_elliptic_envelope <- function(
       size = point_sizes["other_outlier"],
       alpha = 0.5
     ) +
-    # Same industry points - fully opaque, dark
+    # Same subsector points - fully opaque, dark
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "same_group"),
       ggplot2::aes(x = x_val, y = y_val),
@@ -159,7 +160,7 @@ plot_elliptic_envelope <- function(
       size = point_sizes["same_group"],
       alpha = 1.0
     ) +
-    # Same industry outliers - fully opaque, dark red
+    # Same subsector outliers - fully opaque, dark red
     ggplot2::geom_point(
       data = plot_data %>% dplyr::filter(point_category == "same_group_outlier"),
       ggplot2::aes(x = x_val, y = y_val),

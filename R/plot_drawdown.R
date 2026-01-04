@@ -1,16 +1,20 @@
 #' Create Drawdown from Highs Chart
 #'
 #' Creates an area chart showing rolling drawdown from cumulative highs.
-#' Optionally shows horizontal reference lines for sector/industry median drawdowns.
+#' Optionally shows horizontal reference lines for sector/subsector/industry median drawdowns.
 #'
 #' @param data Data frame with columns: date, and either price or drawdown
 #' @param ticker Character string for the ticker symbol
 #' @param sector_median_drawdown Median current drawdown across sector stocks
+#' @param subsector_median_drawdown Median current drawdown across subsector stocks
 #' @param industry_median_drawdown Median current drawdown across industry stocks
 #' @param sector_name Sector name for caption
+#' @param subsector_name Subsector name for caption
 #' @param industry_name Industry name for caption
 #' @param n_sector_stocks Number of stocks in sector
+#' @param n_subsector_stocks Number of stocks in subsector
 #' @param n_industry_stocks Number of stocks in industry
+#' @param min_subsector_stocks Minimum stocks required to show subsector line (default: 10)
 #' @param min_industry_stocks Minimum stocks required to show industry line (default: 10)
 #'
 #' @return A ggplot2 object
@@ -19,11 +23,15 @@ plot_drawdown <- function(
     data,
     ticker,
     sector_median_drawdown = NULL,
+    subsector_median_drawdown = NULL,
     industry_median_drawdown = NULL,
     sector_name = "Sector",
+    subsector_name = "Subsector",
     industry_name = "Industry",
     n_sector_stocks = NULL,
+    n_subsector_stocks = NULL,
     n_industry_stocks = NULL,
+    min_subsector_stocks = 10,
     min_industry_stocks = 10
 ) {
   avpipeline::validate_non_empty(data, "data")
@@ -41,20 +49,40 @@ plot_drawdown <- function(
   # Deep sunset - pinkish red, almost crimson
   sunset_orange <- "#C0392B"
 
+  # Check if we should show subsector line
+  show_subsector <- !is.null(subsector_median_drawdown) &&
+    !is.null(n_subsector_stocks) &&
+    n_subsector_stocks >= min_subsector_stocks
+
   # Check if we should show industry line
   show_industry <- !is.null(industry_median_drawdown) &&
     !is.null(n_industry_stocks) &&
     n_industry_stocks >= min_industry_stocks
 
   # Build caption with population counts (each on separate line)
+  # Convert snake_case names to display case for labels
+  sector_display <- to_display_case(sector_name)
+  subsector_display <- to_display_case(subsector_name)
+  industry_display <- to_display_case(industry_name)
+
   caption_parts <- c()
   if (!is.null(sector_median_drawdown) && !is.null(n_sector_stocks)) {
     caption_parts <- c(
       caption_parts,
       paste0(
-        sector_name, " current median drawdown: ",
+        sector_display, " current median drawdown: ",
         scales::percent(sector_median_drawdown, accuracy = 0.1),
         " (population: ", n_sector_stocks, ")"
+      )
+    )
+  }
+  if (show_subsector) {
+    caption_parts <- c(
+      caption_parts,
+      paste0(
+        subsector_display, " current median drawdown: ",
+        scales::percent(subsector_median_drawdown, accuracy = 0.1),
+        " (population: ", n_subsector_stocks, ")"
       )
     )
   }
@@ -62,7 +90,7 @@ plot_drawdown <- function(
     caption_parts <- c(
       caption_parts,
       paste0(
-        industry_name, " current median drawdown: ",
+        industry_display, " current median drawdown: ",
         scales::percent(industry_median_drawdown, accuracy = 0.1),
         " (population: ", n_industry_stocks, ")"
       )
@@ -76,8 +104,9 @@ plot_drawdown <- function(
     ggplot2::geom_line(color = sunset_orange, linewidth = 0.5)
 
   # Build legend labels
-  sector_legend <- paste0(sector_name, " (Current Median)")
-  industry_legend <- paste0(industry_name, " (Current Median)")
+  sector_legend <- paste0(sector_display, " (Current Median)")
+  subsector_legend <- paste0(subsector_display, " (Current Median)")
+  industry_legend <- paste0(industry_display, " (Current Median)")
 
   # Add sector reference line
   if (!is.null(sector_median_drawdown)) {
@@ -89,12 +118,22 @@ plot_drawdown <- function(
       )
   }
 
-  # Add industry reference line (same crimson as main chart)
+  # Add subsector reference line (steelblue)
+  if (show_subsector) {
+    p <- p +
+      ggplot2::geom_hline(
+        ggplot2::aes(yintercept = subsector_median_drawdown, linetype = subsector_legend),
+        color = "steelblue",
+        linewidth = 0.4
+      )
+  }
+
+  # Add industry reference line (darkgreen)
   if (show_industry) {
     p <- p +
       ggplot2::geom_hline(
         ggplot2::aes(yintercept = industry_median_drawdown, linetype = industry_legend),
-        color = sunset_orange,
+        color = "darkgreen",
         linewidth = 0.4
       )
   }
@@ -103,6 +142,9 @@ plot_drawdown <- function(
   linetype_values <- c()
   if (!is.null(sector_median_drawdown)) {
     linetype_values[sector_legend] <- "dashed"
+  }
+  if (show_subsector) {
+    linetype_values[subsector_legend] <- "dashed"
   }
   if (show_industry) {
     linetype_values[industry_legend] <- "dashed"

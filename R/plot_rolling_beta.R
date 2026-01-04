@@ -29,13 +29,13 @@ plot_rolling_beta <- function(
 
   # Build footnote with 3 lines
   footnote_lines <- c(
-    paste0(ticker, " Rolling Beta vs ", sector_name),
+    paste0(ticker, " Rolling Beta vs ", to_display_case(sector_name)),
     "252-day rolling regression"
   )
   if (!is.null(n_sector_stocks)) {
     footnote_lines <- c(
       footnote_lines,
-      paste0(sector_name, " population: ", n_sector_stocks)
+      paste0(to_display_case(sector_name), " population: ", n_sector_stocks)
     )
   }
   footnote <- paste(footnote_lines, collapse = "\n")

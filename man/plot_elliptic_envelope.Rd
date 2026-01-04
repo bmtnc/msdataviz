@@ -21,9 +21,9 @@ plot_elliptic_envelope(
   x_pct_labels = FALSE,
   y_pct_labels = FALSE,
   n_sector_stocks = NULL,
-  n_industry_stocks = NULL,
+  n_subsector_stocks = NULL,
   sector_name = "Sector",
-  industry_name = "Industry"
+  subsector_name = "Subsector"
 )
 }
 \arguments{
@@ -59,11 +59,11 @@ plot_elliptic_envelope(
 
 \item{n_sector_stocks}{Number of stocks in sector for caption}
 
-\item{n_industry_stocks}{Number of stocks in industry for caption}
+\item{n_subsector_stocks}{Number of stocks in subsector for caption}
 
 \item{sector_name}{Sector name for caption}
 
-\item{industry_name}{Industry name for caption}
+\item{subsector_name}{Subsector name for caption}
 }
 \value{
 A ggplot2 object

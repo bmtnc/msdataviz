@@ -8,25 +8,34 @@ plot_cumulative_return(
   data,
   ticker,
   sector_name = "Sector",
+  subsector_name = "Subsector",
   industry_name = "Industry",
   n_sector_stocks = NULL,
+  n_subsector_stocks = NULL,
   n_industry_stocks = NULL,
+  min_subsector_stocks = 10,
   min_industry_stocks = 10
 )
 }
 \arguments{
 \item{data}{Data frame with columns: date, cumulative_return, and optionally
-sector_cumulative_return and industry_cumulative_return}
+sector_cumulative_return, subsector_cumulative_return, and industry_cumulative_return}
 
 \item{ticker}{Character string for the ticker symbol}
 
 \item{sector_name}{Sector name for legend}
 
+\item{subsector_name}{Subsector name for legend}
+
 \item{industry_name}{Industry name for legend}
 
 \item{n_sector_stocks}{Number of stocks in sector for caption}
 
+\item{n_subsector_stocks}{Number of stocks in subsector for caption}
+
 \item{n_industry_stocks}{Number of stocks in industry for caption}
+
+\item{min_subsector_stocks}{Minimum stocks required to show subsector line (default: 10)}
 
 \item{min_industry_stocks}{Minimum stocks required to show industry line (default: 10)}
 }
@@ -34,7 +43,7 @@ sector_cumulative_return and industry_cumulative_return}
 A ggplot2 object
 }
 \description{
-Creates a line chart showing cumulative returns with sector and industry overlays.
-Includes data callouts for all lines. Industry line is only shown if sample size
-is sufficient (>= 10 stocks).
+Creates a line chart showing cumulative returns with sector, subsector, and
+industry overlays. Includes data callouts for all lines. Subsector and industry
+lines are only shown if sample size is sufficient (>= 10 stocks).
 }
