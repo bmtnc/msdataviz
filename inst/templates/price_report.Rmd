@@ -24,6 +24,7 @@ params:
   roic_n_industry_stocks: 0
   anomaly_data: NULL
   momentum_anomaly_data: NULL
+  dupont_anomaly_data: NULL
   rolling_beta_data: NULL
 ---
 
@@ -112,7 +113,8 @@ gridExtra::grid.arrange(p_valuation, p_roic, ncol = 2)
 envelope_roic <- fit_elliptic_envelope(
   params$anomaly_data$roic_pct,
   params$anomaly_data$ev_nopat,
-  contamination = 0.1
+  contamination = 0.1,
+  winsorize_pct = 0.03
 )
 
 plot_elliptic_envelope(
@@ -140,7 +142,8 @@ plot_elliptic_envelope(
 envelope_momentum <- fit_elliptic_envelope(
   params$momentum_anomaly_data$ttm_return,
   params$momentum_anomaly_data$return_3m,
-  contamination = 0.1
+  contamination = 0.1,
+  winsorize_pct = 0.03
 )
 
 plot_elliptic_envelope(
@@ -156,6 +159,36 @@ plot_elliptic_envelope(
   y_label = "3-Month Return (%)",
   x_pct_labels = TRUE,
   y_pct_labels = TRUE,
+  n_sector_stocks = params$n_sector_stocks,
+  n_subsector_stocks = params$n_subsector_stocks,
+  sector_name = params$sector_name,
+  subsector_name = params$subsector_name
+)
+```
+
+## Operating Margin vs Asset Turnover
+
+```{r anomaly-dupont, fig.width=10, fig.height=8}
+envelope_dupont <- fit_elliptic_envelope(
+  params$dupont_anomaly_data$operating_margin,
+  params$dupont_anomaly_data$asset_turnover,
+  contamination = 0.1,
+  winsorize_pct = 0.03
+)
+
+plot_elliptic_envelope(
+  data = params$dupont_anomaly_data,
+  x_col = "operating_margin",
+  y_col = "asset_turnover",
+  ticker_col = "ticker",
+  group_col = "subsector",
+  target_ticker = params$ticker,
+  target_group = params$subsector_name,
+  envelope_fit = envelope_dupont,
+  x_label = "Operating Margin (%)",
+  y_label = "Asset Turnover (x)",
+  subtitle = "Excludes stocks with operating margin < -100%",
+  x_pct_labels = TRUE,
   n_sector_stocks = params$n_sector_stocks,
   n_subsector_stocks = params$n_subsector_stocks,
   sector_name = params$sector_name,

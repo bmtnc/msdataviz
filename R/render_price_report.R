@@ -59,6 +59,13 @@ render_price_report <- function(
     aws_region = aws_region
   )
 
+  dupont_anomaly_result <- prepare_dupont_anomaly_data(
+    ticker = ticker,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
+
   roic_result <- prepare_roic_data(
     ticker = ticker,
     start_date = start_date,
@@ -130,6 +137,7 @@ render_price_report <- function(
       roic_n_industry_stocks = roic_result$n_industry_stocks,
       anomaly_data = anomaly_result$data,
       momentum_anomaly_data = momentum_anomaly_result$data,
+      dupont_anomaly_data = dupont_anomaly_result$data,
       rolling_beta_data = rolling_beta_data
     ),
     quiet = TRUE

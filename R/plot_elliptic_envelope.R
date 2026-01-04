@@ -175,7 +175,7 @@ plot_elliptic_envelope <- function(
       title = NULL,
       x = x_label,
       y = y_label,
-      caption = full_caption
+      caption = if (!is.null(subtitle)) paste(full_caption, subtitle, sep = "\n") else full_caption
     ) +
     ggplot2::theme(
       plot.caption = ggplot2::element_text(
