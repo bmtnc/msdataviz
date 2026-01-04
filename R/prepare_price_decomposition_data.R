@@ -80,8 +80,7 @@ prepare_price_decomposition_data <- function(
 
   ticker_ttm <- ticker_ttm %>%
     dplyr::mutate(
-      fundamental_per_share = calculate_fundamental_per_share(., metric_config),
-      shares_outstanding = commonStockSharesOutstanding
+      fundamental_per_share = calculate_fundamental_per_share(., metric_config)
     )
 
   if (numerator == "ev") {
@@ -94,7 +93,7 @@ prepare_price_decomposition_data <- function(
       )
   }
 
-  select_cols <- c("date", "fundamental_per_share", "shares_outstanding")
+  select_cols <- c("date", "fundamental_per_share")
   if (numerator == "ev") {
     select_cols <- c(select_cols, "debt_per_share", "lease_per_share",
                      "cash_per_share", "lt_invest_per_share")
@@ -121,7 +120,7 @@ prepare_price_decomposition_data <- function(
   if (numerator == "ev") {
     decomposition_input <- decomposition_input %>%
       tidyr::fill(
-        fundamental_per_share, shares_outstanding,
+        fundamental_per_share,
         debt_per_share, lease_per_share, cash_per_share, lt_invest_per_share,
         .direction = "down"
       ) %>%
@@ -136,16 +135,14 @@ prepare_price_decomposition_data <- function(
       )
   } else {
     decomposition_input <- decomposition_input %>%
-      tidyr::fill(fundamental_per_share, shares_outstanding, .direction = "down")
+      tidyr::fill(fundamental_per_share, .direction = "down")
   }
 
   decomposition_input <- decomposition_input %>%
     dplyr::filter(
       !is.na(fundamental_per_share) &
-        !is.na(shares_outstanding) &
         !is.na(price) &
-        fundamental_per_share > 0 &
-        shares_outstanding > 0
+        fundamental_per_share > 0
     )
 
   if (nrow(decomposition_input) == 0) {

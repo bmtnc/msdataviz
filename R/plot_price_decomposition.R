@@ -20,8 +20,8 @@ plot_price_decomposition <- function(
     title = NULL
 ) {
   required_cols <- c(
-    "date", "price_change", "fundamental_growth_contribution",
-    "share_count_contribution", "multiple_contribution", "price", "multiple"
+    "date", "price_change", "fundamental_contribution",
+    "multiple_contribution", "price", "multiple"
   )
   avpipeline::validate_df_cols(decomposition_data, required_cols)
   avpipeline::validate_non_empty(decomposition_data, "decomposition_data")
@@ -32,17 +32,12 @@ plot_price_decomposition <- function(
   current_data <- decomposition_data %>%
     dplyr::slice_tail(n = 1)
   if (abs(current_data$price_change) > 0.01) {
-    fundamental_dollars <- current_data$fundamental_growth_contribution
-    share_dollars <- current_data$share_count_contribution
+    fundamental_dollars <- current_data$fundamental_contribution
     valuation_dollars <- current_data$multiple_contribution
 
     fundamental_label <- paste0(
       ifelse(fundamental_dollars >= 0, paste0(metric_display_name, " Growth"), paste0(metric_display_name, " Decline")),
       ": ", ifelse(fundamental_dollars >= 0, "+", "-"), "$", round(abs(fundamental_dollars), 1)
-    )
-    share_label <- paste0(
-      ifelse(share_dollars >= 0, "Buybacks", "Dilution"),
-      ": ", ifelse(share_dollars >= 0, "+", "-"), "$", round(abs(share_dollars), 1)
     )
     valuation_label <- paste0(
       ifelse(valuation_dollars >= 0, "Valuation Expansion", "Valuation Compression"),
@@ -53,7 +48,7 @@ plot_price_decomposition <- function(
     direction_text <- ifelse(total_change > 0, "Gain", "Decline")
     subtitle_text <- paste0(
       "$", round(abs(total_change), 1), " Cumulative ", direction_text, " Contribution:", "\n",
-      fundamental_label, " | ", share_label, " | ", valuation_label
+      fundamental_label, " | ", valuation_label
     )
   } else {
     subtitle_text <- paste0("No significant ", tolower(numerator_label), " change to analyze")
@@ -62,25 +57,24 @@ plot_price_decomposition <- function(
   # Prepare plot data
   metric_label <- paste("\u0394", metric_display_name)
   plot_data <- decomposition_data %>%
-    dplyr::select(date, fundamental_growth_contribution, share_count_contribution, multiple_contribution) %>%
+    dplyr::select(date, fundamental_contribution, multiple_contribution) %>%
     tidyr::pivot_longer(
-      cols = c(fundamental_growth_contribution, share_count_contribution, multiple_contribution),
+      cols = c(fundamental_contribution, multiple_contribution),
       names_to = "component",
       values_to = "contribution"
     ) %>%
     dplyr::mutate(
       component = dplyr::case_when(
-        component == "fundamental_growth_contribution" ~ metric_label,
-        component == "share_count_contribution" ~ "\u0394 Share Count",
+        component == "fundamental_contribution" ~ metric_label,
         component == "multiple_contribution" ~ "\u0394 Valuation",
         TRUE ~ component
       ),
-      component = factor(component, levels = c(metric_label, "\u0394 Share Count", "\u0394 Valuation"))
+      component = factor(component, levels = c(metric_label, "\u0394 Valuation"))
     )
 
   # Colors and labels
-  color_values <- c("steelblue", "lightblue", "darkgreen")
-  names(color_values) <- c(metric_label, "\u0394 Share Count", "\u0394 Valuation")
+  color_values <- c("steelblue", "darkgreen")
+  names(color_values) <- c(metric_label, "\u0394 Valuation")
 
   callout_text <- paste0("$", round(current_data$price, 2), "\n", round(current_data$multiple, 1), "x")
   plot_title <- if (is.null(title)) {

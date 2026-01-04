@@ -132,7 +132,7 @@ envelope_roic <- fit_elliptic_envelope(
   params$anomaly_data$roic_pct,
   params$anomaly_data$ev_nopat,
   contamination = 0.1,
-  winsorize_pct = 0.03
+  winsorize_pct = 0.02
 )
 
 plot_elliptic_envelope(
@@ -161,7 +161,7 @@ envelope_momentum <- fit_elliptic_envelope(
   params$momentum_anomaly_data$ttm_return,
   params$momentum_anomaly_data$return_3m,
   contamination = 0.1,
-  winsorize_pct = 0.03
+  winsorize_pct = 0.02
 )
 
 plot_elliptic_envelope(
@@ -191,7 +191,7 @@ envelope_dupont <- fit_elliptic_envelope(
   params$dupont_anomaly_data$operating_margin,
   params$dupont_anomaly_data$asset_turnover,
   contamination = 0.1,
-  winsorize_pct = 0.03
+  winsorize_pct = 0.02
 )
 
 plot_elliptic_envelope(
@@ -205,7 +205,7 @@ plot_elliptic_envelope(
   envelope_fit = envelope_dupont,
   x_label = "Operating Margin (%)",
   y_label = "Asset Turnover (x)",
-  subtitle = "Excludes stocks with operating margin < -100%",
+  subtitle = "Excludes stocks with negative operating income",
   x_pct_labels = TRUE,
   n_sector_stocks = params$n_sector_stocks,
   n_subsector_stocks = params$n_subsector_stocks,

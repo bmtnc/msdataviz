@@ -63,7 +63,7 @@ prepare_dupont_anomaly_data <- function(
     dplyr::filter(
       is.finite(operating_margin) &
       is.finite(asset_turnover) &
-      operating_margin >= -100
+      operating_margin >= 0
     ) %>%
     dplyr::select(ticker, subsector, industry, operating_margin, asset_turnover)
 

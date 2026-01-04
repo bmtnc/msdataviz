@@ -7,7 +7,7 @@
 calculate_price_decomposition(data, base_date = NULL)
 }
 \arguments{
-\item{data}{Data frame with columns: date, price, fundamental_per_share, shares_outstanding}
+\item{data}{Data frame with columns: date, price, fundamental_per_share}
 
 \item{base_date}{Date to use as base for decomposition (first row if NULL)}
 }
@@ -15,5 +15,5 @@ calculate_price_decomposition(data, base_date = NULL)
 Data frame with decomposition columns added
 }
 \description{
-Decomposes cumulative price changes into fundamental growth, share count, and valuation contributions.
+Decomposes cumulative price changes into fundamental and valuation contributions.
 }
