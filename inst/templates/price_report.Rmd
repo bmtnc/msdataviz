@@ -57,12 +57,8 @@ if (!is.null(params$decomposition_data) && nrow(params$decomposition_data) > 0) 
 plot_cumulative_return(
   params$ticker_data,
   params$ticker,
-  sector_name = params$sector_name,
   subsector_name = params$subsector_name,
-  industry_name = params$industry_name,
-  n_sector_stocks = params$n_sector_stocks,
-  n_subsector_stocks = params$n_subsector_stocks,
-  n_industry_stocks = params$n_industry_stocks
+  n_subsector_stocks = params$n_subsector_stocks
 )
 ```
 
@@ -72,28 +68,11 @@ plot_cumulative_return(
 plot_drawdown(
   params$ticker_data,
   params$ticker,
-  sector_median_drawdown = params$sector_median_drawdown,
   subsector_median_drawdown = params$subsector_median_drawdown,
-  industry_median_drawdown = params$industry_median_drawdown,
-  sector_name = params$sector_name,
   subsector_name = params$subsector_name,
-  industry_name = params$industry_name,
-  n_sector_stocks = params$n_sector_stocks,
-  n_subsector_stocks = params$n_subsector_stocks,
-  n_industry_stocks = params$n_industry_stocks
+  n_subsector_stocks = params$n_subsector_stocks
 ) %>%
   add_data_callout(label_fn = scales::percent)
-```
-
-## Rolling Beta
-
-```{r rolling-beta-chart, fig.width=10, fig.height=6}
-plot_rolling_beta(
-  params$rolling_beta_data,
-  params$ticker,
-  sector_name = params$sector_name,
-  n_sector_stocks = params$n_sector_stocks
-)
 ```
 
 ## Valuation and ROIC
@@ -103,55 +82,18 @@ p_valuation <- plot_valuation_ratio(
   params$valuation_data,
   params$ticker,
   metric_name = params$valuation_metric_name,
-  sector_name = params$sector_name,
   subsector_name = params$subsector_name,
-  industry_name = params$industry_name,
-  n_sector_stocks = params$valuation_n_sector_stocks,
-  n_subsector_stocks = params$valuation_n_subsector_stocks,
-  n_industry_stocks = params$valuation_n_industry_stocks
+  n_subsector_stocks = params$valuation_n_subsector_stocks
 )
 
 p_roic <- plot_roic(
   params$roic_data,
   params$ticker,
-  sector_name = params$sector_name,
   subsector_name = params$subsector_name,
-  industry_name = params$industry_name,
-  n_sector_stocks = params$roic_n_sector_stocks,
-  n_subsector_stocks = params$roic_n_subsector_stocks,
-  n_industry_stocks = params$roic_n_industry_stocks
+  n_subsector_stocks = params$roic_n_subsector_stocks
 )
 
 gridExtra::grid.arrange(p_valuation, p_roic, ncol = 2)
-```
-
-## ROIC vs Valuation
-
-```{r anomaly-roic, fig.width=10, fig.height=8}
-envelope_roic <- fit_elliptic_envelope(
-  params$anomaly_data$roic_pct,
-  params$anomaly_data$ev_nopat,
-  contamination = 0.1,
-  winsorize_pct = 0.02
-)
-
-plot_elliptic_envelope(
-  data = params$anomaly_data,
-  x_col = "roic_pct",
-  y_col = "ev_nopat",
-  ticker_col = "ticker",
-  focus_group_col = "subsector",
-  target_ticker = params$ticker,
-  target_focus_group = params$subsector_name,
-  envelope_fit = envelope_roic,
-  x_label = "ROIC",
-  y_label = "EV to NOPAT",
-  x_pct_labels = TRUE,
-  n_population = params$valuation_n_sector_stocks,
-  n_focus_group = params$valuation_n_subsector_stocks,
-  population_label = params$sector_name,
-  focus_group_label = params$subsector_name
-)
 ```
 
 ## Momentum Divergence

@@ -35,12 +35,12 @@ plot_valuation_ratio <- function(
   avpipeline::validate_non_empty(data, "data")
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
 
-  has_sector <- "sector_valuation_ratio" %in% names(data)
-  # Only show subsector line if we have sufficient sample size
+  # Only show lines if column exists AND n_stocks is provided
+  has_sector <- "sector_valuation_ratio" %in% names(data) &&
+    !is.null(n_sector_stocks)
   has_subsector <- "subsector_valuation_ratio" %in% names(data) &&
     !is.null(n_subsector_stocks) &&
     n_subsector_stocks >= min_subsector_stocks
-  # Only show industry line if we have sufficient sample size
   has_industry <- "industry_valuation_ratio" %in% names(data) &&
     !is.null(n_industry_stocks) &&
     n_industry_stocks >= min_industry_stocks
