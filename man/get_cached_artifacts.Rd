@@ -6,7 +6,7 @@
 \usage{
 get_cached_artifacts(
   cache_dir = "~/.cache/msdataviz",
-  max_age_days = 1,
+  max_age_days = 5,
   s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
   aws_region = Sys.getenv("AWS_REGION", "us-east-1"),
   force_refresh = FALSE
@@ -15,7 +15,7 @@ get_cached_artifacts(
 \arguments{
 \item{cache_dir}{Directory for cache files (default: ~/.cache/msdataviz)}
 
-\item{max_age_days}{Maximum cache age in days before refresh (default: 1)}
+\item{max_age_days}{Maximum cache age in days before refresh (default: 5)}
 
 \item{s3_bucket}{S3 bucket name}
 
