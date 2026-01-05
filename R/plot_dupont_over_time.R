@@ -1,52 +1,68 @@
 #' Create DuPont Decomposition Over Time Chart
 #'
-#' Creates a stacked bar chart showing ROA and leverage effect, with ROE as line overlay.
-#' The bars sum to ROE: ROA + (ROE - ROA) = ROE.
+#' Creates a stacked bar chart showing ROA and leverage/efficiency effect.
+#' The bars sum to the return metric: ROA + (Return - ROA) = Return.
 #'
-#' @param data Data frame with columns: date, roe, roa
+#' @param data Data frame with columns: date, return_metric, roa
 #' @param ticker Character string for the ticker symbol
-#' @param income_metric_name Display name for the income metric (default: "Net Income")
+#' @param return_label Label for the return metric (e.g., "ROE", "ROIC")
+#' @param effect_label Label for the effect component (e.g., "Financial Leverage Effect")
+#' @param numerator_name Display name for the numerator (e.g., "NOPAT")
+#' @param denominator_name Display name for the denominator (e.g., "Equity")
+#' @param multiplier_label Label for the multiplier in subtitle (e.g., "Equity Multiplier")
+#' @param title_suffix Suffix for chart title (e.g., "ROE Decomposition (DuPont)")
 #'
 #' @return A ggplot2 object
 #' @export
-plot_dupont_over_time <- function(data, ticker, income_metric_name = "Net Income") {
-  avpipeline::validate_df_cols(data, c("date", "roe", "roa"))
+plot_dupont_over_time <- function(
+    data,
+    ticker,
+    return_label,
+    effect_label,
+    numerator_name,
+    denominator_name,
+    multiplier_label,
+    title_suffix
+) {
+  avpipeline::validate_df_cols(data, c("date", "return_metric", "roa"))
   avpipeline::validate_non_empty(data, "data")
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
 
   plot_data <- data %>%
-    dplyr::mutate(leverage_effect = roe - roa) %>%
+    dplyr::mutate(effect = return_metric - roa) %>%
     tidyr::pivot_longer(
-      cols = c(roa, leverage_effect),
+      cols = c(roa, effect),
       names_to = "component",
       values_to = "value"
     ) %>%
     dplyr::mutate(
       component = factor(
         component,
-        levels = c("roa", "leverage_effect"),
-        labels = c("ROA", "Financial Leverage Effect")
+        levels = c("roa", "effect"),
+        labels = c("ROA", effect_label)
       )
     )
 
-  color_values <- c("ROA" = "#7A9DC7", "Financial Leverage Effect" = "#CC8866")
+  color_values <- stats::setNames(
+    c("#7A9DC7", "#CC8866"),
+    c("ROA", effect_label)
+  )
 
   last_row <- data %>%
     dplyr::filter(date == max(date)) %>%
     dplyr::slice(1)
 
   latest_roa <- last_row$roa
-  latest_equity_multiplier <- last_row$roe / last_row$roa
+  latest_multiplier <- last_row$return_metric / last_row$roa
 
   subtitle_text <- paste0(
     "Latest ROA: ", scales::percent(latest_roa, accuracy = 0.1), "\n",
-    "Latest Equity Multiplier: ", sprintf("%.2fx", latest_equity_multiplier)
+    "Latest ", multiplier_label, ": ", sprintf("%.2fx", latest_multiplier)
   )
 
   date_range <- range(data$date)
   date_buffer <- as.numeric(diff(date_range)) * 0.08
 
-  # Calculate bar width to fill gaps (quarterly data ~ 90 days)
   dates_sorted <- sort(unique(data$date))
   bar_width <- if (length(dates_sorted) > 1) {
     median(diff(dates_sorted))
@@ -64,19 +80,19 @@ plot_dupont_over_time <- function(data, ticker, income_metric_name = "Net Income
       linewidth = 0.2
     ) +
     ggplot2::geom_line(
-      ggplot2::aes(y = roe),
+      ggplot2::aes(y = return_metric),
       color = "black",
       linewidth = 1
     ) +
     ggplot2::geom_point(
       data = last_row,
-      ggplot2::aes(y = roe),
+      ggplot2::aes(y = return_metric),
       color = "black",
       size = 3
     ) +
     ggplot2::geom_text(
       data = last_row,
-      ggplot2::aes(y = roe, label = scales::percent(roe, accuracy = 0.1)),
+      ggplot2::aes(y = return_metric, label = scales::percent(return_metric, accuracy = 0.1)),
       color = "black",
       hjust = -0.5,
       size = 3.5
@@ -89,15 +105,15 @@ plot_dupont_over_time <- function(data, ticker, income_metric_name = "Net Income
       limits = c(date_range[1] - bar_width / 2, date_range[2] + date_buffer)
     ) +
     ggplot2::labs(
-      title = paste0(ticker, ": ROE Decomposition (DuPont)"),
+      title = paste0(ticker, ": ", title_suffix),
       subtitle = subtitle_text,
       x = NULL,
-      y = "ROE",
+      y = return_label,
       fill = NULL,
       caption = paste0(
-        "ROE = ", income_metric_name, " / Equity\n",
-        "ROA = ", income_metric_name, " / Assets\n",
-        "Financial Leverage Effect = ROE - ROA"
+        return_label, " = ", numerator_name, " / ", denominator_name, "\n",
+        "ROA = ", numerator_name, " / Assets\n",
+        effect_label, " = ", return_label, " - ROA"
       )
     ) +
     ggplot2::theme(

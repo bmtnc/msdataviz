@@ -27,11 +27,13 @@ params:
   dupont_anomaly_data: NULL
   rolling_beta_data: NULL
   decomposition_data: NULL
+  decomposition_kpi_data: NULL
   decomposition_metric_display_name: "NOPAT"
   decomposition_numerator: "price"
   decomposition_base_date: NULL
   dupont_over_time_data: NULL
-  dupont_income_metric_name: "Net Income"
+  dupont_numerator_name: "NOPAT"
+  dupont_mode: "roe"
 ---
 
 ```{r setup, include=FALSE}
@@ -49,6 +51,17 @@ if (!is.null(params$decomposition_data) && nrow(params$decomposition_data) > 0) 
     base_date = params$decomposition_base_date,
     metric_display_name = params$decomposition_metric_display_name,
     numerator = params$decomposition_numerator
+  )
+}
+```
+
+```{r kpi-chart, fig.width=10, fig.height=6}
+if (!is.null(params$decomposition_kpi_data) && nrow(params$decomposition_kpi_data) > 0) {
+  plot_financial_kpi(
+    data = params$decomposition_kpi_data,
+    ticker = params$ticker,
+    metric_name = paste0("TTM ", params$decomposition_metric_display_name, " (per share)"),
+    fill_color = "#7A9DC7"
   )
 }
 ```
@@ -102,11 +115,29 @@ gridExtra::grid.arrange(p_valuation, p_roic, ncol = 2)
 
 ```{r dupont-over-time, fig.width=10, fig.height=6}
 if (!is.null(params$dupont_over_time_data) && nrow(params$dupont_over_time_data) > 0) {
-  plot_dupont_over_time(
-    data = params$dupont_over_time_data,
-    ticker = params$ticker,
-    income_metric_name = params$dupont_income_metric_name
-  )
+  if (params$dupont_mode == "roe") {
+    plot_dupont_over_time(
+      data = params$dupont_over_time_data,
+      ticker = params$ticker,
+      return_label = "ROE",
+      effect_label = "Financial Leverage Effect",
+      numerator_name = params$dupont_numerator_name,
+      denominator_name = "Equity",
+      multiplier_label = "Equity Multiplier",
+      title_suffix = "ROE Decomposition (DuPont)"
+    )
+  } else {
+    plot_dupont_over_time(
+      data = params$dupont_over_time_data,
+      ticker = params$ticker,
+      return_label = "ROIC",
+      effect_label = "Capital Efficiency Effect",
+      numerator_name = params$dupont_numerator_name,
+      denominator_name = "Invested Capital",
+      multiplier_label = "Assets / IC",
+      title_suffix = "ROIC Decomposition"
+    )
+  }
 }
 ```
 

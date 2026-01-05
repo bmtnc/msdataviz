@@ -90,10 +90,21 @@ render_price_report <- function(
     aws_region = aws_region
   )
 
+  # Check latest equity to determine ROE vs ROIC decomposition
+  ttm_data <- artifacts$ttm_data
+  latest_equity <- ttm_data %>%
+    dplyr::filter(ticker == !!ticker) %>%
+    dplyr::filter(fiscalDateEnding == max(fiscalDateEnding)) %>%
+    dplyr::pull(totalShareholderEquity)
+
+  use_roic <- length(latest_equity) == 0 || is.na(latest_equity[1]) || latest_equity[1] <= 0
+
   dupont_over_time_result <- prepare_dupont_over_time_data(
     ticker = ticker,
     start_date = start_date,
     end_date = end_date,
+    numerator = "nopat",
+    denominator = if (use_roic) "invested_capital" else "equity",
     artifacts = artifacts,
     s3_bucket = s3_bucket,
     aws_region = aws_region
@@ -164,11 +175,13 @@ render_price_report <- function(
       dupont_anomaly_data = dupont_anomaly_result$data,
       rolling_beta_data = rolling_beta_data,
       decomposition_data = decomposition_result$decomposition_data,
+      decomposition_kpi_data = decomposition_result$kpi_data,
       decomposition_metric_display_name = decomposition_result$metric_display_name,
       decomposition_numerator = decomposition_result$numerator,
       decomposition_base_date = decomposition_result$base_date,
       dupont_over_time_data = dupont_over_time_result$data,
-      dupont_income_metric_name = dupont_over_time_result$income_metric_name
+      dupont_numerator_name = dupont_over_time_result$numerator_name,
+      dupont_mode = dupont_over_time_result$mode
     ),
     quiet = TRUE
   )

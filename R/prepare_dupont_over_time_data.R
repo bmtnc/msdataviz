@@ -1,23 +1,25 @@
 #' Prepare DuPont Over Time Data
 #'
-#' Prepares quarterly ROE and ROA data for a ticker.
+#' Prepares quarterly return metric and ROA data for a ticker.
 #'
 #' @param ticker Character string for the ticker symbol
 #' @param start_date Start date for filtering (default: 2017-12-31)
 #' @param end_date End date for filtering (default: NULL)
-#' @param income_metric Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome" (default: "nopat")
+#' @param numerator Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome" (default: "nopat")
+#' @param denominator Capital base: "equity" or "invested_capital" (default: "equity")
 #' @param artifacts Optional pre-loaded artifacts list
 #' @param cache_dir Directory for cache files
 #' @param max_cache_age_days Maximum cache age before refresh
 #' @param s3_bucket S3 bucket name
 #' @param aws_region AWS region
-#' @return List with: data (data frame with date, roe, roa), ticker, income_metric_name
+#' @return List with: data (data frame with date, return_metric, roa), ticker, numerator_name, denominator, mode
 #' @export
 prepare_dupont_over_time_data <- function(
     ticker,
     start_date = as.Date("2017-12-31"),
     end_date = NULL,
-    income_metric = "nopat",
+    numerator = "nopat",
+    denominator = "equity",
     artifacts = NULL,
     cache_dir = "~/.cache/msdataviz",
     max_cache_age_days = 1,
@@ -25,7 +27,12 @@ prepare_dupont_over_time_data <- function(
     aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
-  avpipeline::validate_character_scalar(income_metric, allow_empty = FALSE, name = "income_metric")
+  avpipeline::validate_character_scalar(numerator, allow_empty = FALSE, name = "numerator")
+  avpipeline::validate_character_scalar(denominator, allow_empty = FALSE, name = "denominator")
+
+  if (!denominator %in% c("equity", "invested_capital")) {
+    stop("denominator must be 'equity' or 'invested_capital'")
+  }
 
   if (is.null(artifacts)) {
     artifacts <- get_cached_artifacts(
@@ -38,8 +45,8 @@ prepare_dupont_over_time_data <- function(
 
   ttm_data <- artifacts$ttm_data
 
-  # Map metric names to columns and display names
-  metric_config <- list(
+  # Map numerator names to columns and display names
+  numerator_config <- list(
     nopat = list(
       cols = c("ebit_ttm", "depreciationAndAmortization_ttm", "depreciation_ttm"),
       display_name = "NOPAT",
@@ -67,27 +74,35 @@ prepare_dupont_over_time_data <- function(
     )
   )
 
-  if (!income_metric %in% names(metric_config)) {
+  if (!numerator %in% names(numerator_config)) {
     stop(
-      "Unknown income_metric: '", income_metric, "'. ",
-      "Available: ", paste(names(metric_config), collapse = ", ")
+      "Unknown numerator: '", numerator, "'. ",
+      "Available: ", paste(names(numerator_config), collapse = ", ")
     )
   }
 
-  config <- metric_config[[income_metric]]
-  required_cols <- c("fiscalDateEnding", "totalAssets", "totalShareholderEquity", config$cols)
-  missing_cols <- setdiff(required_cols, names(ttm_data))
+  config <- numerator_config[[numerator]]
+
+  # Build required columns based on denominator
+  base_cols <- c("fiscalDateEnding", "totalAssets", config$cols)
+  if (denominator == "equity") {
+    base_cols <- c(base_cols, "totalShareholderEquity")
+  } else {
+    base_cols <- c(base_cols, "totalShareholderEquity", "shortLongTermDebtTotal", "capitalLeaseObligations")
+  }
+
+  missing_cols <- setdiff(base_cols, names(ttm_data))
   if (length(missing_cols) > 0) {
     stop("Missing columns in ttm_data: ", paste(missing_cols, collapse = ", "))
   }
 
-  # Filter to ticker first
+  # Filter to ticker
+
   ticker_data <- ttm_data %>%
     dplyr::filter(ticker == !!ticker)
 
-
-  # Calculate income based on metric type
-  if (config$is_calculated && income_metric == "nopat") {
+  # Calculate income based on numerator type
+  if (config$is_calculated && numerator == "nopat") {
     tax_rate <- 0.2375
     ticker_data <- ticker_data %>%
       dplyr::mutate(
@@ -101,33 +116,54 @@ prepare_dupont_over_time_data <- function(
       dplyr::mutate(income = .data[[col_name]])
   }
 
-  dupont_data <- ticker_data %>%
-    dplyr::select(
-      date = fiscalDateEnding,
-      income,
-      assets = totalAssets,
-      equity = totalShareholderEquity
-    ) %>%
+  # Build base data
+  if (denominator == "equity") {
+    dupont_data <- ticker_data %>%
+      dplyr::select(
+        date = fiscalDateEnding,
+        income,
+        assets = totalAssets,
+        denom = totalShareholderEquity
+      )
+  } else {
+    dupont_data <- ticker_data %>%
+      dplyr::mutate(
+        invested_capital = totalShareholderEquity +
+          dplyr::coalesce(shortLongTermDebtTotal, 0) +
+          dplyr::coalesce(capitalLeaseObligations, 0)
+      ) %>%
+      dplyr::select(
+        date = fiscalDateEnding,
+        income,
+        assets = totalAssets,
+        denom = invested_capital
+      )
+  }
+
+  dupont_data <- dupont_data %>%
     dplyr::filter(date >= start_date) %>%
     {
       if (!is.null(end_date)) dplyr::filter(., date <= end_date) else .
     } %>%
     dplyr::filter(
-      !is.na(income) & !is.na(assets) & !is.na(equity) &
-      assets > 0 & equity > 0
+      !is.na(income) & !is.na(assets) & !is.na(denom) &
+      assets > 0 & denom > 0
     ) %>%
     dplyr::mutate(
-      roe = calculate_roe(income, equity),
-      roa = calculate_roa(income, assets)
+      return_metric = income / denom,
+      roa = income / assets
     ) %>%
-    dplyr::filter(is.finite(roe) & is.finite(roa)) %>%
-    dplyr::select(date, roe, roa) %>%
+    dplyr::filter(is.finite(return_metric) & is.finite(roa)) %>%
+    dplyr::select(date, return_metric, roa) %>%
     dplyr::arrange(date)
+
+  mode <- if (denominator == "equity") "roe" else "roic"
 
   list(
     data = dupont_data,
     ticker = ticker,
-    income_metric = income_metric,
-    income_metric_name = config$display_name
+    numerator_name = config$display_name,
+    denominator = denominator,
+    mode = mode
   )
 }

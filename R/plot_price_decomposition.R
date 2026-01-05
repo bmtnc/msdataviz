@@ -32,30 +32,25 @@ plot_price_decomposition <- function(
   current_data <- decomposition_data %>%
     dplyr::slice_tail(n = 1)
   if (abs(current_data$price_change) > 0.01) {
+    total_change <- current_data$price_change
     fundamental_dollars <- current_data$fundamental_contribution
     valuation_dollars <- current_data$multiple_contribution
 
-    fundamental_label <- paste0(
-      ifelse(fundamental_dollars >= 0, paste0(metric_display_name, " Growth"), paste0(metric_display_name, " Decline")),
-      ": ", ifelse(fundamental_dollars >= 0, "+", "-"), "$", round(abs(fundamental_dollars), 1)
-    )
-    valuation_label <- paste0(
-      ifelse(valuation_dollars >= 0, "Valuation Expansion", "Valuation Compression"),
-      ": ", ifelse(valuation_dollars >= 0, "+", "-"), "$", round(abs(valuation_dollars), 1)
-    )
+    format_amount <- function(x) {
+      paste0(ifelse(x >= 0, "+", "-"), "$", round(abs(x), 1))
+    }
 
-    total_change <- current_data$price_change
-    direction_text <- ifelse(total_change > 0, "Gain", "Decline")
     subtitle_text <- paste0(
-      "$", round(abs(total_change), 1), " Cumulative ", direction_text, " Contribution:", "\n",
-      fundamental_label, " | ", valuation_label
+      "\u0394 ", numerator_label, ": ", format_amount(total_change), "\n",
+      "\u0394 ", metric_display_name, ": ", format_amount(fundamental_dollars), "\n",
+      "\u0394 Valuation: ", format_amount(valuation_dollars)
     )
   } else {
     subtitle_text <- paste0("No significant ", tolower(numerator_label), " change to analyze")
   }
 
   # Prepare plot data
-  metric_label <- paste("\u0394", metric_display_name)
+  metric_label <- paste0("\u0394 ", metric_display_name, " (per share)")
   plot_data <- decomposition_data %>%
     dplyr::select(date, fundamental_contribution, multiple_contribution) %>%
     tidyr::pivot_longer(
@@ -76,15 +71,11 @@ plot_price_decomposition <- function(
   color_values <- c("steelblue", "darkgreen")
   names(color_values) <- c(metric_label, "\u0394 Valuation")
 
-  callout_text <- paste0("$", round(current_data$price, 2), "\n", round(current_data$multiple, 1), "x")
   plot_title <- if (is.null(title)) {
     paste0(ticker, ": Cumulative ", numerator_label, " Change Decomposition")
   } else {
     title
   }
-
-  date_range <- diff(range(decomposition_data$date))
-  max_price_change <- max(decomposition_data$price_change, na.rm = TRUE)
 
   # Build plot
   p <- plot_data %>%
@@ -94,27 +85,7 @@ plot_price_decomposition <- function(
       data = decomposition_data,
       ggplot2::aes(x = date, y = price_change),
       color = "black",
-      linewidth = 1,
-      inherit.aes = FALSE
-    ) +
-    ggplot2::geom_point(
-      data = current_data,
-      ggplot2::aes(x = date, y = price_change),
-      color = "black",
-      size = 3,
-      inherit.aes = FALSE
-    ) +
-    ggplot2::geom_label(
-      data = current_data,
-      ggplot2::aes(x = date, y = price_change, label = callout_text),
-      nudge_x = as.numeric(date_range) * 0.06,
-      nudge_y = max_price_change * 0.05,
-      color = "black",
-      fill = "white",
-      alpha = 0.9,
-      size = 3,
-      fontface = "bold",
-      lineheight = 0.9,
+      linewidth = 0.7,
       inherit.aes = FALSE
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
@@ -125,13 +96,21 @@ plot_price_decomposition <- function(
       y = paste0("Cumulative ", numerator_label, " Change ($)"),
       fill = "",
       caption = paste0(
-        "Methodology: ", numerator_label, " = ", metric_display_name, " per Share x Valuation Multiple\nStart Date: ", base_date
+        "Methodology:\n",
+        numerator_label, " = ", metric_display_name, " (per share) \u00d7 Valuation Multiple\n",
+        "Measure \u0394 ", metric_display_name, " and \u0394 Valuation from start date\n",
+        "\u0394 ", numerator_label, " = (\u0394 ", metric_display_name, " \u00d7 base Multiple) + (base ", metric_display_name, " \u00d7 \u0394 Multiple)\n",
+        "Start Date: ", base_date
       )
     ) +
-    ggplot2::coord_cartesian(
-      xlim = c(min(decomposition_data$date), max(decomposition_data$date) + as.numeric(date_range) * 0.15)
-    ) +
-    ggplot2::scale_x_date(date_breaks = "6 months", date_labels = "%Y")
+    ggplot2::scale_x_date(
+      date_breaks = "1 year",
+      date_labels = "%Y",
+      limits = c(
+        min(decomposition_data$date),
+        max(decomposition_data$date) + as.numeric(diff(range(decomposition_data$date))) * 0.05
+      )
+    )
 
   # Add y-axis scale
   max_change <- max(abs(decomposition_data$price_change), na.rm = TRUE)
@@ -141,5 +120,10 @@ plot_price_decomposition <- function(
     p <- p + ggplot2::scale_y_continuous(labels = scales::dollar_format(accuracy = 0.01))
   }
 
-  p
+  p +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0),
+      plot.subtitle = ggplot2::element_text(hjust = 0),
+      plot.caption = ggplot2::element_text(hjust = 0, size = 8, color = "gray50")
+    )
 }

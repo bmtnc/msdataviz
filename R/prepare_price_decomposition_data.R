@@ -107,6 +107,7 @@ prepare_price_decomposition_data <- function(
   if (nrow(ticker_ttm) == 0) {
     return(list(
       decomposition_data = NULL,
+      kpi_data = NULL,
       ticker = ticker,
       metric_display_name = metric_config$display_name,
       numerator = numerator,
@@ -148,6 +149,7 @@ prepare_price_decomposition_data <- function(
   if (nrow(decomposition_input) == 0) {
     return(list(
       decomposition_data = NULL,
+      kpi_data = NULL,
       ticker = ticker,
       metric_display_name = metric_config$display_name,
       numerator = numerator,
@@ -162,8 +164,19 @@ prepare_price_decomposition_data <- function(
     base_date = base_date
   )
 
+  # Extract quarterly KPI data (before daily fill-forward)
+  kpi_data <- ticker_ttm %>%
+    dplyr::select(date, value = fundamental_per_share) %>%
+    dplyr::filter(!is.na(value), date >= start_date)
+
+  if (!is.null(end_date)) {
+    kpi_data <- kpi_data %>%
+      dplyr::filter(date <= end_date)
+  }
+
   list(
     decomposition_data = decomposition_data,
+    kpi_data = kpi_data,
     ticker = ticker,
     metric_display_name = metric_config$display_name,
     numerator = numerator,

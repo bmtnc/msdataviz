@@ -4,19 +4,38 @@
 \alias{plot_dupont_over_time}
 \title{Create DuPont Decomposition Over Time Chart}
 \usage{
-plot_dupont_over_time(data, ticker, income_metric_name = "Net Income")
+plot_dupont_over_time(
+  data,
+  ticker,
+  return_label,
+  effect_label,
+  numerator_name,
+  denominator_name,
+  multiplier_label,
+  title_suffix
+)
 }
 \arguments{
-\item{data}{Data frame with columns: date, roe, roa}
+\item{data}{Data frame with columns: date, return_metric, roa}
 
 \item{ticker}{Character string for the ticker symbol}
 
-\item{income_metric_name}{Display name for the income metric (default: "Net Income")}
+\item{return_label}{Label for the return metric (e.g., "ROE", "ROIC")}
+
+\item{effect_label}{Label for the effect component (e.g., "Financial Leverage Effect")}
+
+\item{numerator_name}{Display name for the numerator (e.g., "NOPAT")}
+
+\item{denominator_name}{Display name for the denominator (e.g., "Equity")}
+
+\item{multiplier_label}{Label for the multiplier in subtitle (e.g., "Equity Multiplier")}
+
+\item{title_suffix}{Suffix for chart title (e.g., "ROE Decomposition (DuPont)")}
 }
 \value{
 A ggplot2 object
 }
 \description{
-Creates a stacked bar chart showing ROA and leverage effect, with ROE as line overlay.
-The bars sum to ROE: ROA + (ROE - ROA) = ROE.
+Creates a stacked bar chart showing ROA and leverage/efficiency effect.
+The bars sum to the return metric: ROA + (Return - ROA) = Return.
 }

@@ -8,7 +8,8 @@ prepare_dupont_over_time_data(
   ticker,
   start_date = as.Date("2017-12-31"),
   end_date = NULL,
-  income_metric = "nopat",
+  numerator = "nopat",
+  denominator = "equity",
   artifacts = NULL,
   cache_dir = "~/.cache/msdataviz",
   max_cache_age_days = 1,
@@ -23,7 +24,9 @@ prepare_dupont_over_time_data(
 
 \item{end_date}{End date for filtering (default: NULL)}
 
-\item{income_metric}{Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome" (default: "nopat")}
+\item{numerator}{Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome" (default: "nopat")}
+
+\item{denominator}{Capital base: "equity" or "invested_capital" (default: "equity")}
 
 \item{artifacts}{Optional pre-loaded artifacts list}
 
@@ -36,8 +39,8 @@ prepare_dupont_over_time_data(
 \item{aws_region}{AWS region}
 }
 \value{
-List with: data (data frame with date, roe, roa), ticker, income_metric_name
+List with: data (data frame with date, return_metric, roa), ticker, numerator_name, denominator, mode
 }
 \description{
-Prepares quarterly ROE and ROA data for a ticker.
+Prepares quarterly return metric and ROA data for a ticker.
 }
