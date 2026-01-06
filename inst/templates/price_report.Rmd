@@ -31,6 +31,7 @@ params:
   decomposition_metric_display_name: "NOPAT"
   decomposition_numerator: "price"
   decomposition_base_date: NULL
+  share_count_decomposition_data: NULL
   dupont_over_time_data: NULL
   dupont_numerator_name: "NOPAT"
   dupont_mode: "roe"
@@ -51,6 +52,17 @@ if (!is.null(params$decomposition_data) && nrow(params$decomposition_data) > 0) 
     base_date = params$decomposition_base_date,
     metric_display_name = params$decomposition_metric_display_name,
     numerator = params$decomposition_numerator
+  )
+}
+```
+
+```{r share-count-decomposition-chart, fig.width=10, fig.height=6}
+if (!is.null(params$share_count_decomposition_data) && nrow(params$share_count_decomposition_data) > 0) {
+  plot_share_count_decomposition(
+    data = params$share_count_decomposition_data,
+    ticker = params$ticker,
+    metric_name = params$decomposition_metric_display_name,
+    base_date = params$decomposition_base_date
   )
 }
 ```

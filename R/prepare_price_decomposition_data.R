@@ -80,7 +80,8 @@ prepare_price_decomposition_data <- function(
 
   ticker_ttm <- ticker_ttm %>%
     dplyr::mutate(
-      fundamental_per_share = calculate_fundamental_per_share(., metric_config)
+      fundamental_per_share = calculate_fundamental_per_share(., metric_config),
+      fundamental_total = calculate_fundamental_total(., metric_config)
     )
 
   if (numerator == "ev") {
@@ -93,7 +94,7 @@ prepare_price_decomposition_data <- function(
       )
   }
 
-  select_cols <- c("date", "fundamental_per_share")
+  select_cols <- c("date", "fundamental_per_share", "fundamental_total", "commonStockSharesOutstanding")
   if (numerator == "ev") {
     select_cols <- c(select_cols, "debt_per_share", "lease_per_share",
                      "cash_per_share", "lt_invest_per_share")
@@ -108,6 +109,7 @@ prepare_price_decomposition_data <- function(
     return(list(
       decomposition_data = NULL,
       kpi_data = NULL,
+      share_count_decomposition_data = NULL,
       ticker = ticker,
       metric_display_name = metric_config$display_name,
       numerator = numerator,
@@ -150,6 +152,7 @@ prepare_price_decomposition_data <- function(
     return(list(
       decomposition_data = NULL,
       kpi_data = NULL,
+      share_count_decomposition_data = NULL,
       ticker = ticker,
       metric_display_name = metric_config$display_name,
       numerator = numerator,
@@ -174,9 +177,36 @@ prepare_price_decomposition_data <- function(
       dplyr::filter(date <= end_date)
   }
 
+  # Prepare share count decomposition data
+  share_count_input <- ticker_ttm %>%
+    dplyr::select(
+      date,
+      metric = fundamental_total,
+      shares = commonStockSharesOutstanding
+    ) %>%
+    dplyr::filter(
+      !is.na(metric),
+      !is.na(shares),
+      metric > 0,
+      shares > 0,
+      date >= start_date
+    )
+
+  if (!is.null(end_date)) {
+    share_count_input <- share_count_input %>%
+      dplyr::filter(date <= end_date)
+  }
+
+  share_count_decomposition_data <- if (nrow(share_count_input) > 1) {
+    calculate_share_count_decomposition(share_count_input, base_date = base_date)
+  } else {
+    NULL
+  }
+
   list(
     decomposition_data = decomposition_data,
     kpi_data = kpi_data,
+    share_count_decomposition_data = share_count_decomposition_data,
     ticker = ticker,
     metric_display_name = metric_config$display_name,
     numerator = numerator,

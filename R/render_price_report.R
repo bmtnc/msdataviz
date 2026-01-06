@@ -179,6 +179,7 @@ render_price_report <- function(
       decomposition_metric_display_name = decomposition_result$metric_display_name,
       decomposition_numerator = decomposition_result$numerator,
       decomposition_base_date = decomposition_result$base_date,
+      share_count_decomposition_data = decomposition_result$share_count_decomposition_data,
       dupont_over_time_data = dupont_over_time_result$data,
       dupont_numerator_name = dupont_over_time_result$numerator_name,
       dupont_mode = dupont_over_time_result$mode
