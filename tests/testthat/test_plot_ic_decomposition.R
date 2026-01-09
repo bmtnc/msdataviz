@@ -3,9 +3,9 @@ test_that("plot_ic_decomposition returns ggplot object", {
     date = as.Date(c("2020-03-31", "2020-06-30", "2020-09-30", "2020-12-31")),
     cum_net_income = c(1000, 2200, 3300, 4600) * 1e6,
     cum_dividends = c(-100, -250, -370, -500) * 1e6,
-    debt_change = c(0, 200, 100, 300) * 1e6,
-    equity_capital_activity = c(-50, -150, -230, -400) * 1e6,
-    ic_change = c(850, 2000, 2800, 4000) * 1e6
+    cum_debt_change = c(0, 200, 100, 300) * 1e6,
+    cum_equity_activity = c(-50, -150, -230, -400) * 1e6,
+    cum_ic_change = c(850, 2000, 2800, 4000) * 1e6
   )
 
   p <- plot_ic_decomposition(test_data, ticker = "TEST")
@@ -30,9 +30,9 @@ test_that("plot_ic_decomposition validates ticker parameter", {
     date = as.Date(c("2020-03-31", "2020-06-30")),
     cum_net_income = c(1000, 2000),
     cum_dividends = c(-100, -200),
-    debt_change = c(0, 100),
-    equity_capital_activity = c(-50, -100),
-    ic_change = c(850, 1800)
+    cum_debt_change = c(0, 100),
+    cum_equity_activity = c(-50, -100),
+    cum_ic_change = c(850, 1800)
   )
 
   expect_error(
@@ -46,9 +46,9 @@ test_that("plot_ic_decomposition handles base_date parameter", {
     date = as.Date(c("2020-03-31", "2020-06-30", "2020-09-30")),
     cum_net_income = c(1000, 2000, 3000),
     cum_dividends = c(-100, -200, -300),
-    debt_change = c(0, 100, 50),
-    equity_capital_activity = c(-50, -100, -150),
-    ic_change = c(850, 1800, 2600)
+    cum_debt_change = c(0, 100, 50),
+    cum_equity_activity = c(-50, -100, -150),
+    cum_ic_change = c(850, 1800, 2600)
   )
 
   p <- plot_ic_decomposition(
@@ -65,9 +65,9 @@ test_that("plot_ic_decomposition includes all four components in legend", {
     date = as.Date(c("2020-03-31", "2020-06-30")),
     cum_net_income = c(1000, 2000) * 1e6,
     cum_dividends = c(-100, -200) * 1e6,
-    debt_change = c(0, 100) * 1e6,
-    equity_capital_activity = c(-50, -100) * 1e6,
-    ic_change = c(850, 1800) * 1e6
+    cum_debt_change = c(0, 100) * 1e6,
+    cum_equity_activity = c(-50, -100) * 1e6,
+    cum_ic_change = c(850, 1800) * 1e6
   )
 
   p <- plot_ic_decomposition(test_data, ticker = "TEST")
@@ -78,5 +78,5 @@ test_that("plot_ic_decomposition includes all four components in legend", {
   expect_true("Net Income" %in% fill_scale$get_labels())
   expect_true("Dividends" %in% fill_scale$get_labels())
   expect_true("Debt Change" %in% fill_scale$get_labels())
-  expect_true("Equity Capital Activity" %in% fill_scale$get_labels())
+  expect_true("Equity Activity" %in% fill_scale$get_labels())
 })

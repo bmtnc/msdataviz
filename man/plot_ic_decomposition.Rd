@@ -8,8 +8,8 @@ plot_ic_decomposition(data, ticker, base_date = NULL)
 }
 \arguments{
 \item{data}{Data frame from calculate_ic_decomposition with columns:
-date, cum_net_income, cum_dividends, debt_change, equity_capital_activity,
-ic_change}
+date, cum_net_income, cum_dividends, cum_debt_change, cum_equity_activity,
+cum_ic_change}
 
 \item{ticker}{Character string for the ticker symbol}
 
@@ -20,5 +20,5 @@ A ggplot2 object
 }
 \description{
 Creates a stacked bar chart showing cumulative change in invested capital
-decomposed into net income, dividends, debt change, and equity capital activity.
+decomposed into net income, dividends, debt change, and equity activity.
 }

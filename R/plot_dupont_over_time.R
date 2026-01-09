@@ -46,7 +46,7 @@ plot_dupont_over_time <- function(
     )
 
   color_values <- stats::setNames(
-    c("#19647E", "#C84630"),
+    c("#519872", "#D1462F"),
     c(roa_label, effect_label)
   )
 
@@ -55,11 +55,15 @@ plot_dupont_over_time <- function(
     dplyr::slice(1)
 
   latest_roa <- last_row$roa
-  latest_multiplier <- last_row$return_metric / last_row$roa
+  multiplier_text <- if (latest_roa > 0.001) {
+    sprintf("%.2fx", last_row$return_metric / latest_roa)
+  } else {
+    "N/A"
+  }
 
   subtitle_text <- paste0(
     "Latest ", roa_label, ": ", scales::percent(latest_roa, accuracy = 0.1, big.mark = ","), "\n",
-    "Latest ", multiplier_label, ": ", sprintf("%.2fx", latest_multiplier)
+    "Latest ", multiplier_label, ": ", multiplier_text
   )
 
   date_range <- range(data$date)
@@ -78,7 +82,7 @@ plot_dupont_over_time <- function(
       data = plot_data,
       ggplot2::aes(x = date, y = value, fill = component),
       width = bar_width,
-      color = "#ACBFA4",
+      color = "#F2E5D7",
       linewidth = 0.2,
       alpha = 0.8
     ) +

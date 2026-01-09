@@ -13,9 +13,10 @@ dividends, debt, equity}
 \item{base_date}{Date to use as baseline (default: min date in data)}
 }
 \value{
-Data frame with cumulative changes for each component
+Data frame with columns: date, cum_net_income, cum_dividends,
+cum_debt_change, cum_equity_activity, cum_ic_change
 }
 \description{
 Calculates cumulative change in invested capital decomposed into four components:
-net income, dividends, debt change, and equity capital activity (residual).
+net income, dividends, debt change, and equity activity (residual).
 }

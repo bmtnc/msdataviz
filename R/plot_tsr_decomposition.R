@@ -43,7 +43,7 @@ plot_tsr_decomposition <- function(
     )
 
   color_values <- setNames(
-    c("#0E7C7B", "#E4C5AF"),
+    c("#55868C", "#E4C5AF"),
     c(market_cap_label, share_label)
   )
 
@@ -52,9 +52,9 @@ plot_tsr_decomposition <- function(
     dplyr::slice(1)
 
   subtitle_text <- paste0(
-    "Total Shareholder Return: ", scales::percent(last_row$tsr, accuracy = 0.1, big.mark = ","), "\n",
-    "Market Cap Growth: ", scales::percent(last_row$market_cap_growth, accuracy = 0.1, big.mark = ","), "\n",
-    "Share Count Effect: ", scales::percent(last_row$share_count_effect, accuracy = 0.1, big.mark = ",")
+    "Total Shareholder Return: ", scales::percent(last_row$tsr, accuracy = 1, big.mark = ","), "\n",
+    "Market Cap Growth: ", scales::percent(last_row$market_cap_growth, accuracy = 1, big.mark = ","), "\n",
+    "Share Count Effect: ", scales::percent(last_row$share_count_effect, accuracy = 1, big.mark = ",")
   )
 
   date_range <- range(data$date)
@@ -70,26 +70,26 @@ plot_tsr_decomposition <- function(
     ) +
     ggplot2::geom_line(
       ggplot2::aes(y = tsr, color = "TSR"),
-      linewidth = 1
+      linewidth = 0.5
     ) +
     ggplot2::geom_point(
       data = last_row,
       ggplot2::aes(y = tsr),
-      color = "black",
+      color = "#061826",
       size = 3
     ) +
     ggplot2::geom_text(
       data = last_row,
       ggplot2::aes(
         y = tsr,
-        label = scales::percent(tsr, accuracy = 0.1, big.mark = ",")
+        label = scales::percent(tsr, accuracy = 1, big.mark = ",")
       ),
-      color = "black",
+      color = "#061826",
       hjust = -0.3,
       size = 3.5
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
-    ggplot2::scale_color_manual(values = c("TSR" = "black")) +
+    ggplot2::scale_color_manual(values = c("TSR" = "#061826")) +
     ggplot2::guides(
       color = ggplot2::guide_legend(order = 1),
       fill = ggplot2::guide_legend(order = 2)

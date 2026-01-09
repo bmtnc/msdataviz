@@ -1,11 +1,11 @@
 #' Plot Invested Capital Decomposition
 #'
 #' Creates a stacked bar chart showing cumulative change in invested capital
-#' decomposed into net income, dividends, debt change, and equity capital activity.
+#' decomposed into net income, dividends, debt change, and equity activity.
 #'
 #' @param data Data frame from calculate_ic_decomposition with columns:
-#'   date, cum_net_income, cum_dividends, debt_change, equity_capital_activity,
-#'   ic_change
+#'   date, cum_net_income, cum_dividends, cum_debt_change, cum_equity_activity,
+#'   cum_ic_change
 #' @param ticker Character string for the ticker symbol
 #' @param base_date Date object for the start of the decomposition period
 #'
@@ -17,8 +17,8 @@ plot_ic_decomposition <- function(
     base_date = NULL
 ) {
   required_cols <- c(
-    "date", "cum_net_income", "cum_dividends", "debt_change",
-    "equity_capital_activity", "ic_change"
+    "date", "cum_net_income", "cum_dividends", "cum_debt_change",
+    "cum_equity_activity", "cum_ic_change"
   )
   avpipeline::validate_df_cols(data, required_cols)
   avpipeline::validate_non_empty(data, "data")
@@ -31,18 +31,18 @@ plot_ic_decomposition <- function(
   net_income_label <- "Net Income"
   dividends_label <- "Dividends"
   debt_label <- "Debt Change"
-  equity_activity_label <- "Equity Capital Activity"
+  equity_activity_label <- "Equity Activity"
 
   plot_data <- data %>%
     dplyr::select(
       date,
       cum_net_income,
       cum_dividends,
-      debt_change,
-      equity_capital_activity
+      cum_debt_change,
+      cum_equity_activity
     ) %>%
     tidyr::pivot_longer(
-      cols = c(cum_net_income, cum_dividends, debt_change, equity_capital_activity),
+      cols = c(cum_net_income, cum_dividends, cum_debt_change, cum_equity_activity),
       names_to = "component",
       values_to = "value"
     ) %>%
@@ -50,8 +50,8 @@ plot_ic_decomposition <- function(
       component = factor(
         component,
         levels = c(
-          "cum_net_income", "debt_change",
-          "cum_dividends", "equity_capital_activity"
+          "cum_net_income", "cum_debt_change",
+          "cum_dividends", "cum_equity_activity"
         ),
         labels = c(
           net_income_label, debt_label,
@@ -61,7 +61,7 @@ plot_ic_decomposition <- function(
     )
 
   color_values <- stats::setNames(
-    c("#77ACA2", "#D64550", "#077187", "#D8973C"),
+    c("#81AE9D", "#C05746", "#077187", "#E4C5AF"),
     c(net_income_label, debt_label, dividends_label, equity_activity_label)
   )
 
@@ -70,11 +70,11 @@ plot_ic_decomposition <- function(
     dplyr::slice(1)
 
   subtitle_text <- paste0(
-    "Cumulative IC Change: ", scales::dollar(last_row$ic_change / 1e9, accuracy = 0.1, suffix = "B"), "\n",
+    "Cumulative IC Change: ", scales::dollar(last_row$cum_ic_change / 1e9, accuracy = 0.1, suffix = "B"), "\n",
     "Net Income: ", scales::dollar(last_row$cum_net_income / 1e9, accuracy = 0.1, suffix = "B"), " | ",
     "Dividends: ", scales::dollar(last_row$cum_dividends / 1e9, accuracy = 0.1, suffix = "B"), "\n",
-    "Debt Change: ", scales::dollar(last_row$debt_change / 1e9, accuracy = 0.1, suffix = "B"), " | ",
-    "Equity Capital Activity: ", scales::dollar(last_row$equity_capital_activity / 1e9, accuracy = 0.1, suffix = "B")
+    "Debt Change: ", scales::dollar(last_row$cum_debt_change / 1e9, accuracy = 0.1, suffix = "B"), " | ",
+    "Equity Activity: ", scales::dollar(last_row$cum_equity_activity / 1e9, accuracy = 0.1, suffix = "B")
   )
 
   date_range <- range(data$date)
@@ -98,28 +98,28 @@ plot_ic_decomposition <- function(
       alpha = 0.8
     ) +
     ggplot2::geom_line(
-      ggplot2::aes(y = ic_change, color = "IC Change"),
+      ggplot2::aes(y = cum_ic_change, color = "IC Change"),
       linewidth = 1
     ) +
     ggplot2::geom_point(
       data = last_row,
-      ggplot2::aes(y = ic_change),
-      color = "black",
+      ggplot2::aes(y = cum_ic_change),
+      color = "#061826",
       size = 3
     ) +
     ggplot2::geom_text(
       data = last_row,
       ggplot2::aes(
-        y = ic_change,
-        label = scales::dollar(ic_change / 1e9, accuracy = 0.1, suffix = "B")
+        y = cum_ic_change,
+        label = scales::dollar(cum_ic_change / 1e9, accuracy = 0.1, suffix = "B")
       ),
-      color = "black",
+      color = "#061826",
       hjust = -0.3,
       size = 3.5
     ) +
     ggplot2::geom_hline(yintercept = 0, linetype = "solid", color = "gray40", linewidth = 0.5) +
     ggplot2::scale_fill_manual(values = color_values) +
-    ggplot2::scale_color_manual(values = c("IC Change" = "black")) +
+    ggplot2::scale_color_manual(values = c("IC Change" = "#061826")) +
     ggplot2::guides(
       color = ggplot2::guide_legend(order = 1),
       fill = ggplot2::guide_legend(order = 2)
@@ -138,9 +138,9 @@ plot_ic_decomposition <- function(
       fill = NULL,
       color = NULL,
       caption = paste0(
-        "Methodology:\n",
-        "IC = Debt + Equity; Net Income (internal generation), Dividends (returned to shareholders),\n",
-        "Debt Change (external debt), Equity Capital Activity (buybacks/issuances/OCI residual)\n",
+        "Methodology: Net Income and Dividends are accumulated flows; Debt Change and IC Change are level differences.\n",
+        "IC Change = Debt Change + Equity Change; ",
+        "Equity Activity = Equity Change - Net Income - Dividends (residual: buybacks, issuances, OCI)\n",
         "Start Date: ", base_date
       )
     ) +

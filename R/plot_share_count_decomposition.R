@@ -45,7 +45,7 @@ plot_share_count_decomposition <- function(
     )
 
   color_values <- setNames(
-    c("#77ACA2", "#E4C5AF"),
+    c("#81AE9D", "#E4C5AF"),
     c(total_growth_label, share_label)
   )
 
@@ -54,9 +54,9 @@ plot_share_count_decomposition <- function(
     dplyr::slice(1)
 
   subtitle_text <- paste0(
-    "Cumulative Per-Share Growth: ", scales::percent(last_row$per_share_growth, accuracy = 0.1, big.mark = ","), "\n",
-    "Total ", metric_name, " Growth: ", scales::percent(last_row$organic_growth, accuracy = 0.1, big.mark = ","), "\n",
-    "Share Count Effect: ", scales::percent(last_row$share_effect, accuracy = 0.1, big.mark = ",")
+    "Cumulative Per-Share Growth: ", scales::percent(last_row$per_share_growth, accuracy = 1, big.mark = ","), "\n",
+    "Total ", metric_name, " Growth: ", scales::percent(last_row$organic_growth, accuracy = 1, big.mark = ","), "\n",
+    "Share Count Effect: ", scales::percent(last_row$share_effect, accuracy = 1, big.mark = ",")
   )
 
   date_range <- range(data$date)
@@ -86,21 +86,21 @@ plot_share_count_decomposition <- function(
     ggplot2::geom_point(
       data = last_row,
       ggplot2::aes(y = per_share_growth),
-      color = "black",
+      color = "#061826",
       size = 3
     ) +
     ggplot2::geom_text(
       data = last_row,
       ggplot2::aes(
         y = per_share_growth,
-        label = scales::percent(per_share_growth, accuracy = 0.1, big.mark = ",")
+        label = scales::percent(per_share_growth, accuracy = 1, big.mark = ",")
       ),
-      color = "black",
+      color = "#061826",
       hjust = -0.3,
       size = 3.5
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
-    ggplot2::scale_color_manual(values = c("Per-Share Growth" = "black")) +
+    ggplot2::scale_color_manual(values = c("Per-Share Growth" = "#061826")) +
     ggplot2::guides(
       color = ggplot2::guide_legend(order = 1),
       fill = ggplot2::guide_legend(order = 2)
