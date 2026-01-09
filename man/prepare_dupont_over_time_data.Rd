@@ -24,9 +24,9 @@ prepare_dupont_over_time_data(
 
 \item{end_date}{End date for filtering (default: NULL)}
 
-\item{numerator}{Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome" (default: "nopat")}
+\item{numerator}{Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome", "grossProfit" (default: "nopat")}
 
-\item{denominator}{Capital base: "equity" or "invested_capital" (default: "equity")}
+\item{denominator}{Capital base: "equity", "invested_capital", or "total_assets" (default: "equity")}
 
 \item{artifacts}{Optional pre-loaded artifacts list}
 

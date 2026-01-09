@@ -11,6 +11,7 @@
 #' @param denominator_name Display name for the denominator (e.g., "Equity")
 #' @param multiplier_label Label for the multiplier in subtitle (e.g., "Equity Multiplier")
 #' @param title_suffix Suffix for chart title (e.g., "ROE Decomposition (DuPont)")
+#' @param roa_label Label for ROA component (default: "ROA", use "GROA" for gross profit)
 #'
 #' @return A ggplot2 object
 #' @export
@@ -22,7 +23,8 @@ plot_dupont_over_time <- function(
     numerator_name,
     denominator_name,
     multiplier_label,
-    title_suffix
+    title_suffix,
+    roa_label = "ROA"
 ) {
   avpipeline::validate_df_cols(data, c("date", "return_metric", "roa"))
   avpipeline::validate_non_empty(data, "data")
@@ -39,13 +41,13 @@ plot_dupont_over_time <- function(
       component = factor(
         component,
         levels = c("roa", "effect"),
-        labels = c("ROA", effect_label)
+        labels = c(roa_label, effect_label)
       )
     )
 
   color_values <- stats::setNames(
-    c("#7A9DC7", "#CC8866"),
-    c("ROA", effect_label)
+    c("#19647E", "#C84630"),
+    c(roa_label, effect_label)
   )
 
   last_row <- data %>%
@@ -56,7 +58,7 @@ plot_dupont_over_time <- function(
   latest_multiplier <- last_row$return_metric / last_row$roa
 
   subtitle_text <- paste0(
-    "Latest ROA: ", scales::percent(latest_roa, accuracy = 0.1), "\n",
+    "Latest ", roa_label, ": ", scales::percent(latest_roa, accuracy = 0.1, big.mark = ","), "\n",
     "Latest ", multiplier_label, ": ", sprintf("%.2fx", latest_multiplier)
   )
 
@@ -76,12 +78,12 @@ plot_dupont_over_time <- function(
       data = plot_data,
       ggplot2::aes(x = date, y = value, fill = component),
       width = bar_width,
-      color = "gray50",
-      linewidth = 0.2
+      color = "#ACBFA4",
+      linewidth = 0.2,
+      alpha = 0.8
     ) +
     ggplot2::geom_line(
-      ggplot2::aes(y = return_metric),
-      color = "black",
+      ggplot2::aes(y = return_metric, color = return_label),
       linewidth = 1
     ) +
     ggplot2::geom_point(
@@ -92,13 +94,14 @@ plot_dupont_over_time <- function(
     ) +
     ggplot2::geom_text(
       data = last_row,
-      ggplot2::aes(y = return_metric, label = scales::percent(return_metric, accuracy = 0.1)),
+      ggplot2::aes(y = return_metric, label = scales::percent(return_metric, accuracy = 0.1, big.mark = ",")),
       color = "black",
       hjust = -0.5,
       size = 3.5
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
-    ggplot2::scale_y_continuous(labels = scales::percent) +
+    ggplot2::scale_color_manual(values = stats::setNames("black", return_label)) +
+    ggplot2::scale_y_continuous(labels = scales::percent_format(big.mark = ",")) +
     ggplot2::scale_x_date(
       date_breaks = "1 year",
       date_labels = "%Y",
@@ -110,10 +113,11 @@ plot_dupont_over_time <- function(
       x = NULL,
       y = return_label,
       fill = NULL,
+      color = NULL,
       caption = paste0(
         return_label, " = ", numerator_name, " / ", denominator_name, "\n",
-        "ROA = ", numerator_name, " / Assets\n",
-        effect_label, " = ", return_label, " - ROA"
+        roa_label, " = ", numerator_name, " / Assets\n",
+        effect_label, " = ", return_label, " - ", roa_label
       )
     ) +
     ggplot2::theme(

@@ -1,0 +1,100 @@
+---
+title: "`r params$ticker` Decomposition Report"
+output: html_document
+params:
+  ticker: "TICKER"
+  # Price decomposition
+  decomposition_data: NULL
+  decomposition_metric_display_name: "NOPAT"
+  decomposition_numerator: "price"
+  decomposition_base_date: NULL
+  # TSR decomposition
+  tsr_decomposition_data: NULL
+  # KPI per share (share count decomposition)
+  share_count_decomposition_data: NULL
+  kpi_metric_display_name: "NOPAT"
+  # DuPont decomposition
+  dupont_data: NULL
+  dupont_numerator_name: "NOPAT"
+  dupont_denominator_name: "Invested Capital"
+  dupont_return_label: "ROIC"
+  dupont_roa_label: "ROA"
+  dupont_effect_label: "Capital Efficiency Effect"
+  dupont_multiplier_label: "Assets / IC"
+  dupont_title_suffix: "ROIC Decomposition"
+  dupont_footnote: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+set_ggplot_theme()
+```
+
+## Total Shareholder Return
+
+```{r tsr-decomposition, fig.width=10, fig.height=6}
+if (!is.null(params$tsr_decomposition_data) && nrow(params$tsr_decomposition_data) > 0) {
+  plot_tsr_decomposition(
+    data = params$tsr_decomposition_data,
+    ticker = params$ticker,
+    base_date = params$decomposition_base_date
+  )
+}
+```
+
+## Per Share Growth
+
+```{r share-count-decomposition, fig.width=10, fig.height=6}
+if (!is.null(params$share_count_decomposition_data) && nrow(params$share_count_decomposition_data) > 0) {
+  plot_share_count_decomposition(
+    data = params$share_count_decomposition_data,
+    ticker = params$ticker,
+    metric_name = params$kpi_metric_display_name,
+    base_date = params$decomposition_base_date
+  )
+}
+```
+
+## `r params$dupont_title_suffix`
+
+```{r dupont-decomposition, fig.width=10, fig.height=6}
+if (!is.null(params$dupont_data) && nrow(params$dupont_data) > 0) {
+  plot_dupont_over_time(
+    data = params$dupont_data,
+    ticker = params$ticker,
+    return_label = params$dupont_return_label,
+    effect_label = params$dupont_effect_label,
+    numerator_name = params$dupont_numerator_name,
+    denominator_name = params$dupont_denominator_name,
+    multiplier_label = params$dupont_multiplier_label,
+    title_suffix = params$dupont_title_suffix,
+    roa_label = params$dupont_roa_label
+  )
+}
+```
+
+---
+
+## Methodology
+
+### TSR Decomposition
+
+The TSR (Total Shareholder Return) chart decomposes cumulative shareholder returns into market cap growth and the share count effect. TSR is measured as the cumulative percentage change in adjusted close price, which captures both price appreciation and dividend reinvestment. Market cap is calculated as adjusted close multiplied by shares outstanding, so changes in market cap reflect total value growth on a dividend-adjusted basis. The share count effect is the residual: TSR minus market cap growth. A positive share count effect indicates that buybacks have boosted per-share returns relative to total value growth; a negative effect indicates dilution from share issuances.
+
+### Per Share Growth Decomposition
+
+The per share growth chart decomposes cumulative growth in a metric per share into two additive components: total metric growth (the numerator effect) and the share count effect (the denominator effect). Total metric growth measures the cumulative percentage change in the aggregate metric (e.g., total NOPAT, which may include both organic growth and inorganic contributions such as M&A). The share count effect is calculated as the residual: per share growth minus total metric growth. This residual captures the full impact of share count changes on per share performance. Note that the share count effect will differ from the raw percentage change in shares because the impact of buybacks or dilution is magnified when the underlying metric is also growing. For example, a 20% reduction in shares applied to a metric that has grown 50% will produce a share count effect greater than 20%, since fewer shares are dividing a larger profit base.
+
+```{r appendix-dupont-header, results='asis'}
+if (!is.null(params$dupont_footnote)) {
+  cat("### DuPont Decomposition\n\n")
+}
+```
+
+```{r appendix-dupont-notes, results='asis'}
+if (!is.null(params$dupont_footnote)) {
+  cat('<p style="color: #666666; font-size: 0.85em; text-align: left;">')
+  cat(params$dupont_footnote)
+  cat('</p>\n')
+}
+```

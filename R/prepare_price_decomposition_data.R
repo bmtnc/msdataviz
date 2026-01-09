@@ -13,7 +13,8 @@
 #' @param s3_bucket S3 bucket name
 #' @param aws_region AWS region
 #'
-#' @return List with: decomposition_data, ticker, metric_display_name, numerator, base_date
+#' @return List with: decomposition_data, kpi_data, share_count_decomposition_data,
+#'   tsr_decomposition_data, ticker, metric_display_name, numerator, base_date
 #' @export
 prepare_price_decomposition_data <- function(
     ticker,
@@ -110,6 +111,7 @@ prepare_price_decomposition_data <- function(
       decomposition_data = NULL,
       kpi_data = NULL,
       share_count_decomposition_data = NULL,
+      tsr_decomposition_data = NULL,
       ticker = ticker,
       metric_display_name = metric_config$display_name,
       numerator = numerator,
@@ -153,6 +155,7 @@ prepare_price_decomposition_data <- function(
       decomposition_data = NULL,
       kpi_data = NULL,
       share_count_decomposition_data = NULL,
+      tsr_decomposition_data = NULL,
       ticker = ticker,
       metric_display_name = metric_config$display_name,
       numerator = numerator,
@@ -203,10 +206,41 @@ prepare_price_decomposition_data <- function(
     NULL
   }
 
+  # Prepare TSR decomposition data
+  # Start with daily prices and join quarterly shares, then forward-fill
+  ticker_prices_for_tsr <- price_data %>%
+    dplyr::filter(ticker == !!ticker, date >= start_date) %>%
+    dplyr::select(date, adjusted_close) %>%
+    dplyr::filter(!is.na(adjusted_close), adjusted_close > 0) %>%
+    dplyr::arrange(date)
+
+  if (!is.null(end_date)) {
+    ticker_prices_for_tsr <- ticker_prices_for_tsr %>%
+      dplyr::filter(date <= end_date)
+  }
+
+  quarterly_shares <- ticker_ttm %>%
+    dplyr::select(date, shares = commonStockSharesOutstanding) %>%
+    dplyr::filter(!is.na(shares), shares > 0) %>%
+    dplyr::arrange(date)
+
+  # Join quarterly shares onto daily prices and forward-fill
+  tsr_input <- ticker_prices_for_tsr %>%
+    dplyr::left_join(quarterly_shares, by = "date") %>%
+    tidyr::fill(shares, .direction = "down") %>%
+    dplyr::filter(!is.na(shares))
+
+  tsr_decomposition_data <- if (nrow(tsr_input) > 1) {
+    calculate_tsr_decomposition(tsr_input, base_date = base_date)
+  } else {
+    NULL
+  }
+
   list(
     decomposition_data = decomposition_data,
     kpi_data = kpi_data,
     share_count_decomposition_data = share_count_decomposition_data,
+    tsr_decomposition_data = tsr_decomposition_data,
     ticker = ticker,
     metric_display_name = metric_config$display_name,
     numerator = numerator,

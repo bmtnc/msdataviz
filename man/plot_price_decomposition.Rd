@@ -2,33 +2,32 @@
 % Please edit documentation in R/plot_price_decomposition.R
 \name{plot_price_decomposition}
 \alias{plot_price_decomposition}
-\title{Create Price Decomposition Stacked Area Chart}
+\title{Plot Price Return Decomposition}
 \usage{
 plot_price_decomposition(
-  decomposition_data,
+  data,
   ticker,
-  base_date,
-  metric_display_name = "NOPAT",
-  numerator = "price",
-  title = NULL
+  metric_name = "NOPAT",
+  base_date = NULL,
+  numerator = "price"
 )
 }
 \arguments{
-\item{decomposition_data}{Data frame with decomposition columns from calculate_price_decomposition}
+\item{data}{Data frame from calculate_price_decomposition with columns:
+date, fundamental_growth, valuation_effect, price_return}
 
 \item{ticker}{Character string for the ticker symbol}
 
+\item{metric_name}{Display name for the metric (e.g., "NOPAT", "Earnings")}
+
 \item{base_date}{Date object for the start of the decomposition period}
 
-\item{metric_display_name}{Display name for the metric in labels (default: "NOPAT")}
-
-\item{numerator}{Valuation numerator: "price" or "ev" (default: "price")}
-
-\item{title}{Optional custom title (default: auto-generated from ticker)}
+\item{numerator}{Valuation numerator label: "price" or "ev" (default: "price")}
 }
 \value{
 A ggplot2 object
 }
 \description{
-Creates a stacked area chart showing cumulative price or EV change decomposition.
+Creates a stacked area chart showing fundamental growth and valuation effect.
+The areas sum to price return: fundamental_growth + valuation_effect = price_return.
 }

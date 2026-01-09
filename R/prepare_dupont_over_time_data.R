@@ -5,8 +5,8 @@
 #' @param ticker Character string for the ticker symbol
 #' @param start_date Start date for filtering (default: 2017-12-31)
 #' @param end_date End date for filtering (default: NULL)
-#' @param numerator Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome" (default: "nopat")
-#' @param denominator Capital base: "equity" or "invested_capital" (default: "equity")
+#' @param numerator Income metric: "nopat", "netIncome", "ebit", "ebitda", "operatingIncome", "grossProfit" (default: "nopat")
+#' @param denominator Capital base: "equity", "invested_capital", or "total_assets" (default: "equity")
 #' @param artifacts Optional pre-loaded artifacts list
 #' @param cache_dir Directory for cache files
 #' @param max_cache_age_days Maximum cache age before refresh
@@ -30,8 +30,8 @@ prepare_dupont_over_time_data <- function(
   avpipeline::validate_character_scalar(numerator, allow_empty = FALSE, name = "numerator")
   avpipeline::validate_character_scalar(denominator, allow_empty = FALSE, name = "denominator")
 
-  if (!denominator %in% c("equity", "invested_capital")) {
-    stop("denominator must be 'equity' or 'invested_capital'")
+  if (!denominator %in% c("equity", "invested_capital", "total_assets")) {
+    stop("denominator must be 'equity', 'invested_capital', or 'total_assets'")
   }
 
   if (is.null(artifacts)) {
@@ -71,6 +71,11 @@ prepare_dupont_over_time_data <- function(
       cols = "operatingIncome_ttm",
       display_name = "Operating Income",
       is_calculated = FALSE
+    ),
+    grossProfit = list(
+      cols = "grossProfit_ttm",
+      display_name = "Gross Profit",
+      is_calculated = FALSE
     )
   )
 
@@ -87,9 +92,10 @@ prepare_dupont_over_time_data <- function(
   base_cols <- c("fiscalDateEnding", "totalAssets", config$cols)
   if (denominator == "equity") {
     base_cols <- c(base_cols, "totalShareholderEquity")
-  } else {
+  } else if (denominator == "invested_capital") {
     base_cols <- c(base_cols, "totalShareholderEquity", "shortLongTermDebtTotal", "capitalLeaseObligations")
   }
+  # total_assets: no additional columns needed beyond totalAssets
 
   missing_cols <- setdiff(base_cols, names(ttm_data))
   if (length(missing_cols) > 0) {
@@ -125,7 +131,7 @@ prepare_dupont_over_time_data <- function(
         assets = totalAssets,
         denom = totalShareholderEquity
       )
-  } else {
+  } else if (denominator == "invested_capital") {
     dupont_data <- ticker_data %>%
       dplyr::mutate(
         invested_capital = totalShareholderEquity +
@@ -137,6 +143,15 @@ prepare_dupont_over_time_data <- function(
         income,
         assets = totalAssets,
         denom = invested_capital
+      )
+  } else {
+    # total_assets: denom = assets (ROA decomposition where return = roa)
+    dupont_data <- ticker_data %>%
+      dplyr::select(
+        date = fiscalDateEnding,
+        income,
+        assets = totalAssets,
+        denom = totalAssets
       )
   }
 
@@ -157,7 +172,12 @@ prepare_dupont_over_time_data <- function(
     dplyr::select(date, return_metric, roa) %>%
     dplyr::arrange(date)
 
-  mode <- if (denominator == "equity") "roe" else "roic"
+  mode <- switch(
+    denominator,
+    equity = "roe",
+    invested_capital = "roic",
+    total_assets = "roa"
+  )
 
   list(
     data = dupont_data,

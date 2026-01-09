@@ -25,6 +25,6 @@ date, organic_growth, share_effect, per_share_growth}
 A ggplot2 object
 }
 \description{
-Creates a stacked bar chart showing organic growth and share count effect.
-The bars sum to per-share growth: organic + share_effect = per_share_growth.
+Creates a stacked bar chart showing total metric growth and share count effect.
+The bars sum to per-share growth: total_growth + share_effect = per_share_growth.
 }

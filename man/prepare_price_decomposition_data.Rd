@@ -39,7 +39,8 @@ prepare_price_decomposition_data(
 \item{aws_region}{AWS region}
 }
 \value{
-List with: decomposition_data, ticker, metric_display_name, numerator, base_date
+List with: decomposition_data, kpi_data, share_count_decomposition_data,
+tsr_decomposition_data, ticker, metric_display_name, numerator, base_date
 }
 \description{
 Prepares data for price decomposition chart.

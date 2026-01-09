@@ -12,7 +12,8 @@ plot_dupont_over_time(
   numerator_name,
   denominator_name,
   multiplier_label,
-  title_suffix
+  title_suffix,
+  roa_label = "ROA"
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ plot_dupont_over_time(
 \item{multiplier_label}{Label for the multiplier in subtitle (e.g., "Equity Multiplier")}
 
 \item{title_suffix}{Suffix for chart title (e.g., "ROE Decomposition (DuPont)")}
+
+\item{roa_label}{Label for ROA component (default: "ROA", use "GROA" for gross profit)}
 }
 \value{
 A ggplot2 object

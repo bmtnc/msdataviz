@@ -12,8 +12,15 @@ calculate_price_decomposition(data, base_date = NULL)
 \item{base_date}{Date to use as base for decomposition (first row if NULL)}
 }
 \value{
-Data frame with decomposition columns added
+Data frame with decomposition columns:
+\itemize{
+\item date, price, fundamental_per_share, multiple
+\item fundamental_growth: cumulative \% change in fundamental per share
+\item price_return: cumulative \% change in price
+\item valuation_effect: price_return - fundamental_growth (the residual)
+}
 }
 \description{
-Decomposes cumulative price changes into fundamental and valuation contributions.
+Decomposes cumulative price returns into fundamental growth and valuation effect.
+Uses the residual method: valuation_effect = price_return - fundamental_growth.
 }

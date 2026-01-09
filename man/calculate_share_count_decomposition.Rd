@@ -15,14 +15,14 @@ calculate_share_count_decomposition(data, base_date = NULL)
 Data frame with decomposition columns:
 \itemize{
 \item date, metric, shares, metric_per_share
-\item organic_growth: cumulative \% change in metric
+\item organic_growth: cumulative \% change in total metric (numerator effect)
 \item per_share_growth: cumulative \% change in metric per share
-\item share_effect: per_share_growth - organic_growth (the residual)
+\item share_effect: per_share_growth - organic_growth (denominator effect)
 }
 }
 \description{
-Decomposes cumulative per-share metric growth into organic growth and share count effect.
-Uses the residual method: share_effect = per_share_growth - organic_growth.
+Decomposes cumulative per-share metric growth into total metric growth (numerator)
+and share count effect (denominator). Uses the residual method.
 }
 \details{
 Note: This function does not filter negative metric values. Percentage changes

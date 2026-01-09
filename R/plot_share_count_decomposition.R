@@ -1,7 +1,7 @@
 #' Plot Share Count Decomposition
 #'
-#' Creates a stacked bar chart showing organic growth and share count effect.
-#' The bars sum to per-share growth: organic + share_effect = per_share_growth.
+#' Creates a stacked bar chart showing total metric growth and share count effect.
+#' The bars sum to per-share growth: total_growth + share_effect = per_share_growth.
 #'
 #' @param data Data frame from calculate_share_count_decomposition with columns:
 #'   date, organic_growth, share_effect, per_share_growth
@@ -26,7 +26,7 @@ plot_share_count_decomposition <- function(
     base_date <- min(data$date)
   }
 
-  organic_label <- paste0("\u0394 ", metric_name, " (Organic)")
+  total_growth_label <- paste0("Total ", metric_name, " Growth")
   share_label <- "Share Count Effect"
 
   plot_data <- data %>%
@@ -40,13 +40,13 @@ plot_share_count_decomposition <- function(
       component = factor(
         component,
         levels = c("organic_growth", "share_effect"),
-        labels = c(organic_label, share_label)
+        labels = c(total_growth_label, share_label)
       )
     )
 
   color_values <- setNames(
-    c("#7A9DC7", "gray60"),
-    c(organic_label, share_label)
+    c("#77ACA2", "#E4C5AF"),
+    c(total_growth_label, share_label)
   )
 
   last_row <- data %>%
@@ -54,9 +54,9 @@ plot_share_count_decomposition <- function(
     dplyr::slice(1)
 
   subtitle_text <- paste0(
-    "Cumulative Per-Share Growth: ", scales::percent(last_row$per_share_growth, accuracy = 0.1), "\n",
-    "Organic (", metric_name, "): ", scales::percent(last_row$organic_growth, accuracy = 0.1), "\n",
-    "Share Count Effect: ", scales::percent(last_row$share_effect, accuracy = 0.1)
+    "Cumulative Per-Share Growth: ", scales::percent(last_row$per_share_growth, accuracy = 0.1, big.mark = ","), "\n",
+    "Total ", metric_name, " Growth: ", scales::percent(last_row$organic_growth, accuracy = 0.1, big.mark = ","), "\n",
+    "Share Count Effect: ", scales::percent(last_row$share_effect, accuracy = 0.1, big.mark = ",")
   )
 
   date_range <- range(data$date)
@@ -75,12 +75,12 @@ plot_share_count_decomposition <- function(
       data = plot_data,
       ggplot2::aes(x = date, y = value, fill = component),
       width = bar_width,
-      color = "gray80",
-      linewidth = 0.2
+      color = "#7C7287",
+      linewidth = 0.2,
+      alpha = 0.8
     ) +
     ggplot2::geom_line(
-      ggplot2::aes(y = per_share_growth),
-      color = "black",
+      ggplot2::aes(y = per_share_growth, color = "Per-Share Growth"),
       linewidth = 1
     ) +
     ggplot2::geom_point(
@@ -93,14 +93,15 @@ plot_share_count_decomposition <- function(
       data = last_row,
       ggplot2::aes(
         y = per_share_growth,
-        label = scales::percent(per_share_growth, accuracy = 0.1)
+        label = scales::percent(per_share_growth, accuracy = 0.1, big.mark = ",")
       ),
       color = "black",
       hjust = -0.3,
       size = 3.5
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
-    ggplot2::scale_y_continuous(labels = scales::percent) +
+    ggplot2::scale_color_manual(values = c("Per-Share Growth" = "black")) +
+    ggplot2::scale_y_continuous(labels = scales::percent_format(big.mark = ",")) +
     ggplot2::scale_x_date(
       date_breaks = "1 year",
       date_labels = "%Y",
@@ -112,10 +113,11 @@ plot_share_count_decomposition <- function(
       x = NULL,
       y = paste0("Cumulative ", metric_name, " Per Share Growth"),
       fill = "",
+      color = "",
       caption = paste0(
         "Methodology:\n",
-        "Organic Growth = \u0394 ", metric_name, " (total, not per share)\n",
-        "Share Count Effect = Per-Share Growth - Organic Growth\n",
+        "Total ", metric_name, " Growth = cumulative % change in total ", metric_name, " (numerator)\n",
+        "Share Count Effect = Per-Share Growth - Total Growth (denominator effect)\n",
         "Positive effect = buybacks; Negative effect = dilution\n",
         "Start Date: ", base_date
       )

@@ -1,7 +1,7 @@
 #' Calculate Share Count Decomposition
 #'
-#' Decomposes cumulative per-share metric growth into organic growth and share count effect.
-#' Uses the residual method: share_effect = per_share_growth - organic_growth.
+#' Decomposes cumulative per-share metric growth into total metric growth (numerator)
+#' and share count effect (denominator). Uses the residual method.
 #'
 #' Note: This function does not filter negative metric values. Percentage changes
 #' may not be meaningful when the metric crosses zero or is negative.
@@ -11,9 +11,9 @@
 #'
 #' @return Data frame with decomposition columns:
 #'   - date, metric, shares, metric_per_share
-#'   - organic_growth: cumulative % change in metric
+#'   - organic_growth: cumulative % change in total metric (numerator effect)
 #'   - per_share_growth: cumulative % change in metric per share
-#'   - share_effect: per_share_growth - organic_growth (the residual)
+#'   - share_effect: per_share_growth - organic_growth (denominator effect)
 #' @export
 calculate_share_count_decomposition <- function(data, base_date = NULL) {
   required_cols <- c("date", "metric", "shares")
