@@ -91,6 +91,16 @@ render_decomposition_report <- function(
     aws_region = aws_region
   )
 
+  # Prepare NOPAT decomposition data
+  nopat_result <- prepare_nopat_decomposition_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
+
   # Find template
   template_path <- system.file(
     "templates", "decomposition_report.Rmd",
@@ -136,7 +146,10 @@ render_decomposition_report <- function(
       dupont_title_suffix = dupont_labels$title_suffix,
       dupont_footnote = dupont_labels$footnote,
       # IC decomposition
-      ic_decomposition_data = ic_result$ic_decomposition_data
+      ic_decomposition_data = ic_result$ic_decomposition_data,
+      # NOPAT decomposition
+      nopat_decomposition_data = nopat_result$nopat_decomposition_data,
+      nopat_metric_name = "NOPAT"
     ),
     quiet = TRUE
   )

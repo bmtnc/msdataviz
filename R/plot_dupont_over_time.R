@@ -46,7 +46,7 @@ plot_dupont_over_time <- function(
     )
 
   color_values <- stats::setNames(
-    c("#519872", "#D1462F"),
+    c("#D5A021", "#69140E"),
     c(roa_label, effect_label)
   )
 
@@ -82,7 +82,7 @@ plot_dupont_over_time <- function(
       data = plot_data,
       ggplot2::aes(x = date, y = value, fill = component),
       width = bar_width,
-      color = "#F2E5D7",
+      color = "#F5F9E9",
       linewidth = 0.2,
       alpha = 0.8
     ) +

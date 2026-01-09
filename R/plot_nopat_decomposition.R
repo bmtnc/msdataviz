@@ -1,25 +1,23 @@
-#' Plot Invested Capital Decomposition
+#' Plot NOPAT Decomposition
 #'
-#' Creates a stacked bar chart showing cumulative change in invested capital
-#' decomposed into net income, dividends, debt change, and equity activity.
+#' Creates a stacked bar chart showing cumulative change in NOPAT decomposed
+#' into ROIC effect (on base capital) and capital deployment effect.
 #'
-#' @param data Data frame from calculate_ic_decomposition with columns:
-#'   date, cum_net_income, cum_dividends, cum_debt_change, cum_equity_activity,
-#'   cum_ic_change
+#' @param data Data frame from calculate_nopat_decomposition with columns:
+#'   date, nopat, nopat_change, roic_effect, capital_effect
 #' @param ticker Character string for the ticker symbol
+#' @param metric_name Display name for the metric (default: "NOPAT")
 #' @param base_date Date object for the start of the decomposition period
 #'
 #' @return A ggplot2 object
 #' @export
-plot_ic_decomposition <- function(
+plot_nopat_decomposition <- function(
     data,
     ticker,
+    metric_name = "NOPAT",
     base_date = NULL
 ) {
-  required_cols <- c(
-    "date", "cum_net_income", "cum_dividends", "cum_debt_change",
-    "cum_equity_activity", "cum_ic_change"
-  )
+  required_cols <- c("date", "nopat", "nopat_change", "roic_effect", "capital_effect")
   avpipeline::validate_df_cols(data, required_cols)
   avpipeline::validate_non_empty(data, "data")
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
@@ -28,41 +26,27 @@ plot_ic_decomposition <- function(
     base_date <- min(data$date)
   }
 
-  net_income_label <- "Net Income"
-  dividends_label <- "Dividends"
-  debt_label <- "Debt Change"
-  equity_activity_label <- "Equity Activity"
+  roic_effect_label <- "ROIC Effect"
+  capital_effect_label <- "Capital Deployment"
 
   plot_data <- data %>%
-    dplyr::select(
-      date,
-      cum_net_income,
-      cum_dividends,
-      cum_debt_change,
-      cum_equity_activity
-    ) %>%
+    dplyr::select(date, roic_effect, capital_effect) %>%
     tidyr::pivot_longer(
-      cols = c(cum_net_income, cum_dividends, cum_debt_change, cum_equity_activity),
+      cols = c(roic_effect, capital_effect),
       names_to = "component",
       values_to = "value"
     ) %>%
     dplyr::mutate(
       component = factor(
         component,
-        levels = c(
-          "cum_net_income", "cum_debt_change",
-          "cum_dividends", "cum_equity_activity"
-        ),
-        labels = c(
-          net_income_label, debt_label,
-          dividends_label, equity_activity_label
-        )
+        levels = c("capital_effect", "roic_effect"),
+        labels = c(capital_effect_label, roic_effect_label)
       )
     )
 
   color_values <- stats::setNames(
-    c("#81AE9D", "#C05746", "#244F26", "#E4C5AF"),
-    c(net_income_label, debt_label, dividends_label, equity_activity_label)
+    c("#114B5F", "#D5A021"),
+    c(capital_effect_label, roic_effect_label)
   )
 
   last_row <- data %>%
@@ -70,11 +54,12 @@ plot_ic_decomposition <- function(
     dplyr::slice(1)
 
   subtitle_text <- paste0(
-    "Cumulative IC Change: ", scales::dollar(last_row$cum_ic_change / 1e9, accuracy = 0.1, suffix = "B"), "\n",
-    "Net Income: ", scales::dollar(last_row$cum_net_income / 1e9, accuracy = 0.1, suffix = "B"), " | ",
-    "Dividends: ", scales::dollar(last_row$cum_dividends / 1e9, accuracy = 0.1, suffix = "B"), "\n",
-    "Debt Change: ", scales::dollar(last_row$cum_debt_change / 1e9, accuracy = 0.1, suffix = "B"), " | ",
-    "Equity Activity: ", scales::dollar(last_row$cum_equity_activity / 1e9, accuracy = 0.1, suffix = "B")
+    "Cumulative ", metric_name, " Change: ",
+    scales::dollar(last_row$nopat_change / 1e9, accuracy = 0.1, suffix = "B"), "\n",
+    "Capital Deployment Effect: ",
+    scales::dollar(last_row$capital_effect / 1e9, accuracy = 0.1, suffix = "B"), " | ",
+    "ROIC Effect: ",
+    scales::dollar(last_row$roic_effect / 1e9, accuracy = 0.1, suffix = "B")
   )
 
   date_range <- range(data$date)
@@ -93,25 +78,25 @@ plot_ic_decomposition <- function(
       data = plot_data,
       ggplot2::aes(x = date, y = value, fill = component),
       width = bar_width,
-      color = "#F7F3E3",
+      color = "#FFFAFF",
       linewidth = 0.2,
       alpha = 0.8
     ) +
     ggplot2::geom_line(
-      ggplot2::aes(y = cum_ic_change, color = "IC Change"),
+      ggplot2::aes(y = nopat_change, color = paste0(metric_name, " Change")),
       linewidth = 1
     ) +
     ggplot2::geom_point(
       data = last_row,
-      ggplot2::aes(y = cum_ic_change),
+      ggplot2::aes(y = nopat_change),
       color = "#061826",
       size = 3
     ) +
     ggplot2::geom_text(
       data = last_row,
       ggplot2::aes(
-        y = cum_ic_change,
-        label = scales::dollar(cum_ic_change / 1e9, accuracy = 0.1, suffix = "B")
+        y = nopat_change,
+        label = scales::dollar(nopat_change / 1e9, accuracy = 0.1, suffix = "B")
       ),
       color = "#061826",
       hjust = -0.3,
@@ -119,7 +104,9 @@ plot_ic_decomposition <- function(
     ) +
     ggplot2::geom_hline(yintercept = 0, linetype = "solid", color = "gray40", linewidth = 0.5) +
     ggplot2::scale_fill_manual(values = color_values) +
-    ggplot2::scale_color_manual(values = c("IC Change" = "#061826")) +
+    ggplot2::scale_color_manual(
+      values = stats::setNames("#061826", paste0(metric_name, " Change"))
+    ) +
     ggplot2::guides(
       color = ggplot2::guide_legend(order = 1),
       fill = ggplot2::guide_legend(order = 2)
@@ -131,16 +118,16 @@ plot_ic_decomposition <- function(
       limits = c(date_range[1] - bar_width / 2, date_range[2] + date_buffer)
     ) +
     ggplot2::labs(
-      title = paste0(ticker, ": Invested Capital Decomposition"),
+      title = paste0(ticker, ": ", metric_name, " Decomposition"),
       subtitle = subtitle_text,
       x = NULL,
-      y = "Cumulative Change ($B)",
+      y = paste0("Cumulative ", metric_name, " Change ($B)"),
       fill = NULL,
       color = NULL,
       caption = paste0(
-        "Methodology: Net Income and Dividends are accumulated flows; Debt Change and IC Change are level differences.\n",
-        "IC Change = Debt Change + Equity Change; ",
-        "Equity Activity = Equity Change - Net Income - Dividends (residual: buybacks, issuances, OCI)\n",
+        "Methodology:\n",
+        "Capital Deployment Effect = (IC_t - IC_0) * ROIC_t (NOPAT from incremental capital at current returns)\n",
+        "ROIC Effect = IC_0 * (ROIC_t - ROIC_0) (change in returns on base capital)\n",
         "Start Date: ", base_date
       )
     ) +

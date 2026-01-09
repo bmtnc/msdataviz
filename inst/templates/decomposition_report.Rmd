@@ -25,6 +25,9 @@ params:
   dupont_footnote: NULL
   # IC decomposition
   ic_decomposition_data: NULL
+  # NOPAT decomposition
+  nopat_decomposition_data: NULL
+  nopat_metric_name: "NOPAT"
 ---
 
 ```{r setup, include=FALSE}
@@ -87,6 +90,19 @@ if (!is.null(params$ic_decomposition_data) && nrow(params$ic_decomposition_data)
 }
 ```
 
+## `r params$nopat_metric_name` Decomposition
+
+```{r nopat-decomposition, fig.width=10, fig.height=6}
+if (!is.null(params$nopat_decomposition_data) && nrow(params$nopat_decomposition_data) > 0) {
+  plot_nopat_decomposition(
+    data = params$nopat_decomposition_data,
+    ticker = params$ticker,
+    metric_name = params$nopat_metric_name,
+    base_date = params$decomposition_base_date
+  )
+}
+```
+
 ---
 
 ## Methodology
@@ -102,6 +118,10 @@ The per share growth chart decomposes cumulative growth in a metric per share in
 ### Invested Capital Decomposition
 
 The invested capital decomposition chart shows cumulative change in invested capital (IC = Debt + Equity) broken down into four additive components. Net Income represents internal capital generation from operations (cumulative quarterly net income). Dividends represent capital returned to shareholders (shown as negative values). Debt Change represents the net change in borrowed capital (debt plus lease obligations) from the balance sheet. Equity Capital Activity is a residual component capturing the net effect of share buybacks, issuances, and other comprehensive income: it equals the actual change in equity minus cumulative net income minus cumulative dividends. For companies with significant buyback programs, this component will typically be negative, reflecting capital returned to shareholders beyond dividends. Unlike the other decompositions in this report, this analysis uses dollar amounts rather than percentages, providing a direct view of the magnitude of capital flows.
+
+### NOPAT Decomposition
+
+The NOPAT decomposition chart shows cumulative change in NOPAT (or another profitability metric) broken down into two additive components that explain the nature of earnings growth. Capital Deployment measures the NOPAT contribution from incremental capital invested since the base period, calculated as (IC_t - IC_0) × ROIC_t. This component captures how much of the earnings growth comes from deploying additional capital at current returns. ROIC Effect measures the change in NOPAT due to efficiency improvements or deterioration on the base capital, calculated as IC_0 × (ROIC_t - ROIC_0). A positive ROIC effect indicates the company is earning better returns on its original capital base; a negative effect indicates deteriorating returns. When Capital Deployment dominates, the company is scaling its business model. When ROIC Effect dominates, growth is coming from operational improvements. When both are positive, the company is both scaling and improving efficiency. When Capital Deployment is positive but ROIC Effect is negative, the company may be experiencing diminishing returns on new investments.
 
 ```{r appendix-dupont-header, results='asis'}
 if (!is.null(params$dupont_footnote)) {
