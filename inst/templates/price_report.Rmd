@@ -35,6 +35,7 @@ params:
   dupont_over_time_data: NULL
   dupont_numerator_name: "NOPAT"
   dupont_mode: "roe"
+  price_to_book: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -47,10 +48,10 @@ set_ggplot_theme()
 ```{r decomposition-chart, fig.width=10, fig.height=6}
 if (!is.null(params$decomposition_data) && nrow(params$decomposition_data) > 0) {
   plot_price_decomposition(
-    decomposition_data = params$decomposition_data,
+    data = params$decomposition_data,
     ticker = params$ticker,
+    metric_name = params$decomposition_metric_display_name,
     base_date = params$decomposition_base_date,
-    metric_display_name = params$decomposition_metric_display_name,
     numerator = params$decomposition_numerator
   )
 }
@@ -127,18 +128,12 @@ gridExtra::grid.arrange(p_valuation, p_roic, ncol = 2)
 
 ```{r dupont-over-time, fig.width=10, fig.height=6}
 if (!is.null(params$dupont_over_time_data) && nrow(params$dupont_over_time_data) > 0) {
-  if (params$dupont_mode == "roe") {
-    plot_dupont_over_time(
-      data = params$dupont_over_time_data,
-      ticker = params$ticker,
-      return_label = "ROE",
-      effect_label = "Financial Leverage Effect",
-      numerator_name = params$dupont_numerator_name,
-      denominator_name = "Equity",
-      multiplier_label = "Equity Multiplier",
-      title_suffix = "ROE Decomposition (DuPont)"
-    )
-  } else {
+  # Use ROIC if: mode is "roic", P/B is NULL, or P/B > 10x
+  use_roic <- params$dupont_mode != "roe" ||
+              is.null(params$price_to_book) ||
+              params$price_to_book > 10
+
+  if (use_roic) {
     plot_dupont_over_time(
       data = params$dupont_over_time_data,
       ticker = params$ticker,
@@ -148,6 +143,17 @@ if (!is.null(params$dupont_over_time_data) && nrow(params$dupont_over_time_data)
       denominator_name = "Invested Capital",
       multiplier_label = "Assets / IC",
       title_suffix = "ROIC Decomposition"
+    )
+  } else {
+    plot_dupont_over_time(
+      data = params$dupont_over_time_data,
+      ticker = params$ticker,
+      return_label = "ROE",
+      effect_label = "Financial Leverage Effect",
+      numerator_name = params$dupont_numerator_name,
+      denominator_name = "Equity",
+      multiplier_label = "Equity Multiplier",
+      title_suffix = "ROE Decomposition (DuPont)"
     )
   }
 }
