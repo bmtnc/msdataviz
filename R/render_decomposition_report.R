@@ -81,6 +81,16 @@ render_decomposition_report <- function(
     aws_region = aws_region
   )
 
+  # Prepare IC decomposition data
+  ic_result <- prepare_ic_decomposition_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    artifacts = artifacts,
+    s3_bucket = s3_bucket,
+    aws_region = aws_region
+  )
+
   # Find template
   template_path <- system.file(
     "templates", "decomposition_report.Rmd",
@@ -124,7 +134,9 @@ render_decomposition_report <- function(
       dupont_effect_label = dupont_labels$effect_label,
       dupont_multiplier_label = dupont_labels$multiplier_label,
       dupont_title_suffix = dupont_labels$title_suffix,
-      dupont_footnote = dupont_labels$footnote
+      dupont_footnote = dupont_labels$footnote,
+      # IC decomposition
+      ic_decomposition_data = ic_result$ic_decomposition_data
     ),
     quiet = TRUE
   )

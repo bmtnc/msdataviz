@@ -7,7 +7,7 @@
 render_decomposition_report(
   ticker,
   output_dir = "output",
-  start_date = as.Date("2017-12-31"),
+  start_date = as.Date("2014-12-31"),
   end_date = NULL,
   profile = "default",
   price_decomp_metric = NULL,

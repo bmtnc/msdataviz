@@ -23,6 +23,8 @@ params:
   dupont_multiplier_label: "Assets / IC"
   dupont_title_suffix: "ROIC Decomposition"
   dupont_footnote: NULL
+  # IC decomposition
+  ic_decomposition_data: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -73,6 +75,18 @@ if (!is.null(params$dupont_data) && nrow(params$dupont_data) > 0) {
 }
 ```
 
+## Invested Capital Decomposition
+
+```{r ic-decomposition, fig.width=10, fig.height=6}
+if (!is.null(params$ic_decomposition_data) && nrow(params$ic_decomposition_data) > 0) {
+  plot_ic_decomposition(
+    data = params$ic_decomposition_data,
+    ticker = params$ticker,
+    base_date = params$decomposition_base_date
+  )
+}
+```
+
 ---
 
 ## Methodology
@@ -84,6 +98,10 @@ The TSR (Total Shareholder Return) chart decomposes cumulative shareholder retur
 ### Per Share Growth Decomposition
 
 The per share growth chart decomposes cumulative growth in a metric per share into two additive components: total metric growth (the numerator effect) and the share count effect (the denominator effect). Total metric growth measures the cumulative percentage change in the aggregate metric (e.g., total NOPAT, which may include both organic growth and inorganic contributions such as M&A). The share count effect is calculated as the residual: per share growth minus total metric growth. This residual captures the full impact of share count changes on per share performance. Note that the share count effect will differ from the raw percentage change in shares because the impact of buybacks or dilution is magnified when the underlying metric is also growing. For example, a 20% reduction in shares applied to a metric that has grown 50% will produce a share count effect greater than 20%, since fewer shares are dividing a larger profit base.
+
+### Invested Capital Decomposition
+
+The invested capital decomposition chart shows cumulative change in invested capital (IC = Debt + Equity) broken down into four additive components. Net Income represents internal capital generation from operations (cumulative quarterly net income). Dividends represent capital returned to shareholders (shown as negative values). Debt Change represents the net change in borrowed capital (debt plus lease obligations) from the balance sheet. Equity Capital Activity is a residual component capturing the net effect of share buybacks, issuances, and other comprehensive income: it equals the actual change in equity minus cumulative net income minus cumulative dividends. For companies with significant buyback programs, this component will typically be negative, reflecting capital returned to shareholders beyond dividends. Unlike the other decompositions in this report, this analysis uses dollar amounts rather than percentages, providing a direct view of the magnitude of capital flows.
 
 ```{r appendix-dupont-header, results='asis'}
 if (!is.null(params$dupont_footnote)) {
