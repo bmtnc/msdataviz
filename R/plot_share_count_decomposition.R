@@ -101,6 +101,10 @@ plot_share_count_decomposition <- function(
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
     ggplot2::scale_color_manual(values = c("Per-Share Growth" = "black")) +
+    ggplot2::guides(
+      color = ggplot2::guide_legend(order = 1),
+      fill = ggplot2::guide_legend(order = 2)
+    ) +
     ggplot2::scale_y_continuous(labels = scales::percent_format(big.mark = ",")) +
     ggplot2::scale_x_date(
       date_breaks = "1 year",
