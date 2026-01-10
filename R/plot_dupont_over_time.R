@@ -46,7 +46,7 @@ plot_dupont_over_time <- function(
     )
 
   color_values <- stats::setNames(
-    c("#D5A021", "#69140E"),
+    c("#D5A021", "#3D405B"),
     c(roa_label, effect_label)
   )
 

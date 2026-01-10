@@ -45,7 +45,7 @@ plot_share_count_decomposition <- function(
     )
 
   color_values <- setNames(
-    c("#81AE9D", "#E4C5AF"),
+    c("#274C77", "#69A197"),
     c(total_growth_label, share_label)
   )
 
@@ -75,7 +75,7 @@ plot_share_count_decomposition <- function(
       data = plot_data,
       ggplot2::aes(x = date, y = value, fill = component),
       width = bar_width,
-      color = "#7C7287",
+      color = "#F7F3E3",
       linewidth = 0.2,
       alpha = 0.8
     ) +

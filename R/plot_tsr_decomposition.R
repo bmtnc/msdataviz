@@ -43,7 +43,7 @@ plot_tsr_decomposition <- function(
     )
 
   color_values <- setNames(
-    c("#335145", "#E4C5AF"),
+    c("#214E34", "#69A197"),
     c(market_cap_label, share_label)
   )
 
@@ -75,7 +75,7 @@ plot_tsr_decomposition <- function(
     ggplot2::geom_point(
       data = last_row,
       ggplot2::aes(y = tsr),
-      color = "#0B3948",
+      color = "#061826",
       size = 3
     ) +
     ggplot2::geom_text(
@@ -84,12 +84,12 @@ plot_tsr_decomposition <- function(
         y = tsr,
         label = scales::percent(tsr, accuracy = 1, big.mark = ",")
       ),
-      color = "#190B28",
+      color = "#061826",
       hjust = -0.3,
       size = 3.5
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
-    ggplot2::scale_color_manual(values = c("TSR" = "#190B28")) +
+    ggplot2::scale_color_manual(values = c("TSR" = "#2B3D41")) +
     ggplot2::guides(
       color = ggplot2::guide_legend(order = 1),
       fill = ggplot2::guide_legend(order = 2)

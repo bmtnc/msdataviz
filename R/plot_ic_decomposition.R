@@ -61,7 +61,7 @@ plot_ic_decomposition <- function(
     )
 
   color_values <- stats::setNames(
-    c("#81AE9D", "#C05746", "#244F26", "#E4C5AF"),
+    c("#274C77", "#D64933", "#214E34", "#69A197"),
     c(net_income_label, debt_label, dividends_label, equity_activity_label)
   )
 
