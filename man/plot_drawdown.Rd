@@ -17,7 +17,9 @@ plot_drawdown(
   n_subsector_stocks = NULL,
   n_industry_stocks = NULL,
   min_subsector_stocks = 10,
-  min_industry_stocks = 10
+  min_industry_stocks = 10,
+  show_anomalies = FALSE,
+  anomaly_threshold = 2
 )
 }
 \arguments{
@@ -46,6 +48,10 @@ plot_drawdown(
 \item{min_subsector_stocks}{Minimum stocks required to show subsector line (default: 10)}
 
 \item{min_industry_stocks}{Minimum stocks required to show industry line (default: 10)}
+
+\item{show_anomalies}{Whether to overlay anomaly points (default: FALSE)}
+
+\item{anomaly_threshold}{Z-score threshold for anomaly detection (default: 2)}
 }
 \value{
 A ggplot2 object

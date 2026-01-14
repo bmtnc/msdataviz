@@ -98,7 +98,8 @@ plot_drawdown(
   params$ticker,
   subsector_median_drawdown = params$subsector_median_drawdown,
   subsector_name = params$subsector_name,
-  n_subsector_stocks = params$n_subsector_stocks
+  n_subsector_stocks = params$n_subsector_stocks,
+  show_anomalies = TRUE
 ) %>%
   add_data_callout(label_fn = scales::percent)
 ```

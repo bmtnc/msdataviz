@@ -16,26 +16,34 @@
 #' @param n_industry_stocks Number of stocks in industry
 #' @param min_subsector_stocks Minimum stocks required to show subsector line (default: 10)
 #' @param min_industry_stocks Minimum stocks required to show industry line (default: 10)
+#' @param show_anomalies Whether to overlay anomaly points (default: FALSE)
+#' @param anomaly_threshold Z-score threshold for anomaly detection (default: 2)
 #'
 #' @return A ggplot2 object
 #' @export
 plot_drawdown <- function(
-    data,
-    ticker,
-    sector_median_drawdown = NULL,
-    subsector_median_drawdown = NULL,
-    industry_median_drawdown = NULL,
-    sector_name = "Sector",
-    subsector_name = "Subsector",
-    industry_name = "Industry",
-    n_sector_stocks = NULL,
-    n_subsector_stocks = NULL,
-    n_industry_stocks = NULL,
-    min_subsector_stocks = 10,
-    min_industry_stocks = 10
+  data,
+  ticker,
+  sector_median_drawdown = NULL,
+  subsector_median_drawdown = NULL,
+  industry_median_drawdown = NULL,
+  sector_name = "Sector",
+  subsector_name = "Subsector",
+  industry_name = "Industry",
+  n_sector_stocks = NULL,
+  n_subsector_stocks = NULL,
+  n_industry_stocks = NULL,
+  min_subsector_stocks = 10,
+  min_industry_stocks = 10,
+  show_anomalies = FALSE,
+  anomaly_threshold = 2
 ) {
   avpipeline::validate_non_empty(data, "data")
-  avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
+  avpipeline::validate_character_scalar(
+    ticker,
+    allow_empty = FALSE,
+    name = "ticker"
+  )
 
   # Calculate drawdown if not provided
   if ("drawdown" %in% names(data)) {
@@ -70,9 +78,12 @@ plot_drawdown <- function(
     caption_parts <- c(
       caption_parts,
       paste0(
-        sector_display, " current median drawdown: ",
+        sector_display,
+        " current median drawdown: ",
         scales::percent(sector_median_drawdown, accuracy = 0.1),
-        " (population: ", n_sector_stocks, ")"
+        " (population: ",
+        n_sector_stocks,
+        ")"
       )
     )
   }
@@ -80,9 +91,12 @@ plot_drawdown <- function(
     caption_parts <- c(
       caption_parts,
       paste0(
-        subsector_display, " current median drawdown: ",
+        subsector_display,
+        " current median drawdown: ",
         scales::percent(subsector_median_drawdown, accuracy = 0.1),
-        " (population: ", n_subsector_stocks, ")"
+        " (population: ",
+        n_subsector_stocks,
+        ")"
       )
     )
   }
@@ -90,18 +104,46 @@ plot_drawdown <- function(
     caption_parts <- c(
       caption_parts,
       paste0(
-        industry_display, " current median drawdown: ",
+        industry_display,
+        " current median drawdown: ",
         scales::percent(industry_median_drawdown, accuracy = 0.1),
-        " (population: ", n_industry_stocks, ")"
+        " (population: ",
+        n_industry_stocks,
+        ")"
       )
     )
   }
-  caption <- if (length(caption_parts) > 0) paste(caption_parts, collapse = "\n") else NULL
+  caption <- if (length(caption_parts) > 0) {
+    paste(caption_parts, collapse = "\n")
+  } else {
+    NULL
+  }
 
   p <- plot_data %>%
     ggplot2::ggplot(ggplot2::aes(x = date, y = drawdown)) +
-    ggplot2::geom_area(fill = sunset_orange, alpha = 0.7) +
-    ggplot2::geom_line(color = sunset_orange, linewidth = 0.5)
+    ggplot2::geom_area(fill = "#4C5760", alpha = 0.5) +
+    ggplot2::geom_line(color = "#4C5760", linewidth = 0.5)
+
+  # Add anomaly points if requested
+  if (show_anomalies) {
+    anomaly_flags <- ts_anomaly(
+      plot_data$drawdown,
+      threshold = anomaly_threshold,
+      direction = "low"
+    )
+    anomaly_data <- dplyr::filter(
+      plot_data,
+      anomaly_flags & !is.na(anomaly_flags)
+    )
+    if (nrow(anomaly_data) > 0) {
+      p <- p +
+        ggplot2::geom_point(
+          data = anomaly_data,
+          color = "#EF767A",
+          size = 1
+        )
+    }
+  }
 
   # Build legend labels
   sector_legend <- paste0(sector_display, " (Current Median)")
@@ -112,7 +154,10 @@ plot_drawdown <- function(
   if (!is.null(sector_median_drawdown)) {
     p <- p +
       ggplot2::geom_hline(
-        ggplot2::aes(yintercept = sector_median_drawdown, linetype = sector_legend),
+        ggplot2::aes(
+          yintercept = sector_median_drawdown,
+          linetype = sector_legend
+        ),
         color = "gray50",
         linewidth = 0.4
       )
@@ -122,7 +167,10 @@ plot_drawdown <- function(
   if (show_subsector) {
     p <- p +
       ggplot2::geom_hline(
-        ggplot2::aes(yintercept = subsector_median_drawdown, linetype = subsector_legend),
+        ggplot2::aes(
+          yintercept = subsector_median_drawdown,
+          linetype = subsector_legend
+        ),
         color = "steelblue",
         linewidth = 0.4
       )
@@ -132,7 +180,10 @@ plot_drawdown <- function(
   if (show_industry) {
     p <- p +
       ggplot2::geom_hline(
-        ggplot2::aes(yintercept = industry_median_drawdown, linetype = industry_legend),
+        ggplot2::aes(
+          yintercept = industry_median_drawdown,
+          linetype = industry_legend
+        ),
         color = "darkgreen",
         linewidth = 0.4
       )
@@ -166,6 +217,10 @@ plot_drawdown <- function(
       caption = caption
     ) +
     ggplot2::theme(
-      plot.caption = ggplot2::element_text(hjust = 0, size = 8, color = "gray50")
+      plot.caption = ggplot2::element_text(
+        hjust = 0,
+        size = 8,
+        color = "gray50"
+      )
     )
 }
