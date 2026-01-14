@@ -207,33 +207,46 @@ prepare_price_decomposition_data <- function(
   }
 
   # Prepare TSR decomposition data
-  # Start with daily prices and join quarterly shares, then forward-fill
-  ticker_prices_for_tsr <- price_data %>%
-    dplyr::filter(ticker == !!ticker, date >= start_date) %>%
-    dplyr::select(date, adjusted_close) %>%
-    dplyr::filter(!is.na(adjusted_close), adjusted_close > 0) %>%
-    dplyr::arrange(date)
+  # Requires close and split_coefficient columns for 3-way decomposition
+  has_close_col <- "close" %in% names(price_data)
+  has_split_col <- "split_coefficient" %in% names(price_data)
 
-  if (!is.null(end_date)) {
-    ticker_prices_for_tsr <- ticker_prices_for_tsr %>%
-      dplyr::filter(date <= end_date)
-  }
+  tsr_decomposition_data <- NULL
 
-  quarterly_shares <- ticker_ttm %>%
-    dplyr::select(date, shares = commonStockSharesOutstanding) %>%
-    dplyr::filter(!is.na(shares), shares > 0) %>%
-    dplyr::arrange(date)
+ if (has_close_col && has_split_col) {
+    ticker_prices_for_tsr <- price_data %>%
+      dplyr::filter(ticker == !!ticker, date >= start_date) %>%
+      dplyr::select(date, adjusted_close, close, split_coefficient) %>%
+      dplyr::filter(
+        !is.na(adjusted_close), adjusted_close > 0,
+        !is.na(close), close > 0
+      ) %>%
+      dplyr::arrange(date)
 
-  # Join quarterly shares onto daily prices and forward-fill
-  tsr_input <- ticker_prices_for_tsr %>%
-    dplyr::left_join(quarterly_shares, by = "date") %>%
-    tidyr::fill(shares, .direction = "down") %>%
-    dplyr::filter(!is.na(shares))
+    if (!is.null(end_date)) {
+      ticker_prices_for_tsr <- ticker_prices_for_tsr %>%
+        dplyr::filter(date <= end_date)
+    }
 
-  tsr_decomposition_data <- if (nrow(tsr_input) > 1) {
-    calculate_tsr_decomposition(tsr_input, base_date = base_date)
+    quarterly_shares <- ticker_ttm %>%
+      dplyr::select(date, shares = commonStockSharesOutstanding) %>%
+      dplyr::filter(!is.na(shares), shares > 0) %>%
+      dplyr::arrange(date)
+
+    # Join quarterly shares onto daily prices and forward-fill
+    tsr_input <- ticker_prices_for_tsr %>%
+      dplyr::left_join(quarterly_shares, by = "date") %>%
+      tidyr::fill(shares, .direction = "down") %>%
+      dplyr::filter(!is.na(shares))
+
+    tsr_decomposition_data <- if (nrow(tsr_input) > 1) {
+      calculate_tsr_decomposition(tsr_input, base_date = base_date)
+    } else {
+      NULL
+    }
   } else {
-    NULL
+    message("TSR decomposition skipped: price artifact missing 'close' or 'split_coefficient' columns. ",
+            "Regenerate artifact with updated pipeline to enable 3-way decomposition.")
   }
 
   list(

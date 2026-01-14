@@ -1,10 +1,10 @@
 #' Plot TSR Decomposition
 #'
-#' Creates a stacked bar chart showing market cap growth and share count effect.
-#' The bars sum to TSR: market_cap_growth + share_count_effect = tsr.
+#' Creates a stacked area chart showing the three components of TSR:
+#' market cap growth, dividend effect, and share count effect.
 #'
 #' @param data Data frame from calculate_tsr_decomposition with columns:
-#'   date, tsr, market_cap_growth, share_count_effect
+#'   date, tsr, market_cap_growth, dividend_effect, share_count_effect
 #' @param ticker Character string for the ticker symbol
 #' @param base_date Date object for the start of the decomposition period
 #'
@@ -15,7 +15,7 @@ plot_tsr_decomposition <- function(
     ticker,
     base_date = NULL
 ) {
-  required_cols <- c("date", "tsr", "market_cap_growth", "share_count_effect")
+  required_cols <- c("date", "tsr", "market_cap_growth", "dividend_effect", "share_count_effect")
   avpipeline::validate_df_cols(data, required_cols)
   avpipeline::validate_non_empty(data, "data")
   avpipeline::validate_character_scalar(ticker, allow_empty = FALSE, name = "ticker")
@@ -25,26 +25,27 @@ plot_tsr_decomposition <- function(
   }
 
   market_cap_label <- "Market Cap Growth"
+  dividend_label <- "Dividend Effect"
   share_label <- "Share Count Effect"
 
   plot_data <- data %>%
-    dplyr::select(date, market_cap_growth, share_count_effect) %>%
+    dplyr::select(date, market_cap_growth, dividend_effect, share_count_effect) %>%
     tidyr::pivot_longer(
-      cols = c(market_cap_growth, share_count_effect),
+      cols = c(market_cap_growth, dividend_effect, share_count_effect),
       names_to = "component",
       values_to = "value"
     ) %>%
     dplyr::mutate(
       component = factor(
         component,
-        levels = c("market_cap_growth", "share_count_effect"),
-        labels = c(market_cap_label, share_label)
+        levels = c("market_cap_growth", "dividend_effect", "share_count_effect"),
+        labels = c(market_cap_label, dividend_label, share_label)
       )
     )
 
   color_values <- setNames(
-    c("#214E34", "#69A197"),
-    c(market_cap_label, share_label)
+    c("#69747C", "#214E34", "#69A197"),
+    c(market_cap_label, dividend_label, share_label)
   )
 
   last_row <- data %>%
@@ -54,6 +55,7 @@ plot_tsr_decomposition <- function(
   subtitle_text <- paste0(
     "Total Shareholder Return: ", scales::percent(last_row$tsr, accuracy = 1, big.mark = ","), "\n",
     "Market Cap Growth: ", scales::percent(last_row$market_cap_growth, accuracy = 1, big.mark = ","), "\n",
+    "Dividend Effect: ", scales::percent(last_row$dividend_effect, accuracy = 1, big.mark = ","), "\n",
     "Share Count Effect: ", scales::percent(last_row$share_count_effect, accuracy = 1, big.mark = ",")
   )
 
@@ -110,8 +112,9 @@ plot_tsr_decomposition <- function(
       caption = paste0(
         "Methodology:\n",
         "TSR = cumulative % change in adjusted close (price + dividends)\n",
-        "Market Cap Growth = cumulative % change in adjusted_close \u00d7 shares\n",
-        "Share Count Effect = TSR - Market Cap Growth (buybacks/dilution)\n",
+        "Market Cap Growth = cumulative % change in split-adjusted close \u00d7 shares\n",
+        "Dividend Effect = TSR - price return (contribution from reinvested dividends)\n",
+        "Share Count Effect = price return - market cap growth (buybacks/dilution)\n",
         "Start Date: ", base_date
       )
     ) +

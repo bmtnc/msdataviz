@@ -8,7 +8,7 @@ plot_tsr_decomposition(data, ticker, base_date = NULL)
 }
 \arguments{
 \item{data}{Data frame from calculate_tsr_decomposition with columns:
-date, tsr, market_cap_growth, share_count_effect}
+date, tsr, market_cap_growth, dividend_effect, share_count_effect}
 
 \item{ticker}{Character string for the ticker symbol}
 
@@ -18,6 +18,6 @@ date, tsr, market_cap_growth, share_count_effect}
 A ggplot2 object
 }
 \description{
-Creates a stacked bar chart showing market cap growth and share count effect.
-The bars sum to TSR: market_cap_growth + share_count_effect = tsr.
+Creates a stacked area chart showing the three components of TSR:
+market cap growth, dividend effect, and share count effect.
 }

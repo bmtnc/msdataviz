@@ -7,21 +7,21 @@
 calculate_tsr_decomposition(data, base_date = NULL)
 }
 \arguments{
-\item{data}{Data frame with columns: date, adjusted_close, shares}
+\item{data}{Data frame with columns: date, adjusted_close, close,
+split_coefficient, shares}
 
 \item{base_date}{Date to use as base for decomposition (first row if NULL)}
 }
 \value{
 Data frame with decomposition columns:
 \itemize{
-\item date, adjusted_close, shares, market_cap
 \item tsr: cumulative \% change in adjusted close (total shareholder return)
 \item market_cap_growth: cumulative \% change in market cap
-\item share_count_effect: tsr - market_cap_growth (the residual)
+\item dividend_effect: contribution from dividend reinvestment
+\item share_count_effect: contribution from buybacks/dilution
 }
 }
 \description{
-Decomposes Total Shareholder Return (adjusted close) into market cap growth
-and share count effect. Market cap is calculated as adjusted_close × shares,
-so the gap captures purely the impact of share count changes on per-share returns.
+Decomposes Total Shareholder Return into three additive components:
+market cap growth, dividend effect, and share count effect.
 }
