@@ -3,12 +3,20 @@
 # Load the package
 library(msdataviz)
 
+# Helper: convert uppercase/snake_case to Title Case
+to_title_case <- function(x) {
+  x %>%
+    tolower() %>%
+    gsub("_", " ", .) %>%
+    gsub("(^|\\s)([a-z])", "\\1\\U\\2", ., perl = TRUE)
+}
+
 # Load artifacts on startup (cached)
 artifacts <- get_cached_artifacts()
 
-# Get unique tickers with sector/industry for search
+# Get unique tickers with sector/subsector/industry for search
 ticker_list <- artifacts$ttm_data %>%
-  dplyr::distinct(ticker, sector, industry) %>%
+  dplyr::distinct(ticker, sector, subsector, industry) %>%
   dplyr::arrange(ticker)
 
 ticker_choices <- stats::setNames(ticker_list$ticker, ticker_list$ticker)
@@ -159,8 +167,9 @@ server <- function(input, output, session) {
     info <- selected_info()
     shiny::tagList(
       shiny::h4(input$ticker),
-      shiny::p(shiny::strong("Sector: "), info$sector),
-      shiny::p(shiny::strong("Industry: "), info$industry)
+      shiny::p(shiny::strong("Sector: "), to_title_case(info$sector)),
+      shiny::p(shiny::strong("Subsector: "), to_title_case(info$subsector)),
+      shiny::p(shiny::strong("Industry: "), to_title_case(info$industry))
     )
   })
 
