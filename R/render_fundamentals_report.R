@@ -145,6 +145,9 @@ render_fundamentals_report <- function(
   )
   roe_labels <- get_dupont_labels("netIncome", "equity")
 
+  # Prepare KPI data for financial ratios
+  kpi_data <- prepare_kpi_data(fundamentals)
+
   template_path <- system.file(
     "templates", "fundamentals_report.Rmd",
     package = "msdataviz"
@@ -181,7 +184,8 @@ render_fundamentals_report <- function(
       roic_data = roic_result$data,
       roic_labels = roic_labels,
       roe_data = roe_result$data,
-      roe_labels = roe_labels
+      roe_labels = roe_labels,
+      kpi_data = kpi_data
     ),
     quiet = TRUE
   )

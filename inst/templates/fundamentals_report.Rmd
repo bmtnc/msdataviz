@@ -19,6 +19,7 @@ params:
   roic_labels: NULL
   roe_data: NULL
   roe_labels: NULL
+  kpi_data: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -321,6 +322,144 @@ safe_bar_plot(params$data, "retained_earnings", params$ticker, "Retained Earning
 
 ```{r, fig.width=10, fig.height=6}
 safe_bar_plot(params$data, "shares_outstanding", params$ticker, "Shares Outstanding")
+```
+
+### KPIs {.tabset}
+
+#### Margins
+
+```{r kpi-margins, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = c("gross_margin", "operating_margin", "net_margin"),
+    labels = c("Gross Margin", "Operating Margin", "Net Margin"),
+    colors = c("steelblue", "darkgreen", "navy"),
+    y_format = "percent",
+    y_label = "Margin",
+    ticker = params$ticker,
+    title_suffix = "Profit Margins"
+  )
+}
+```
+
+#### ROIC
+
+```{r kpi-roic, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = "roic",
+    labels = "ROIC",
+    colors = "navy",
+    y_format = "percent",
+    y_label = "NOPAT / IC",
+    ticker = params$ticker,
+    title_suffix = "ROIC"
+  )
+}
+```
+
+#### GROIC
+
+```{r kpi-groic, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = "groic",
+    labels = "GROIC",
+    colors = "steelblue",
+    y_format = "percent",
+    y_label = "Gross Profit / IC",
+    ticker = params$ticker,
+    title_suffix = "GROIC"
+  )
+}
+```
+
+#### ROE
+
+```{r kpi-roe, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = "roe",
+    labels = "ROE",
+    colors = "darkgreen",
+    y_format = "percent",
+    y_label = "Net Income / Equity",
+    ticker = params$ticker,
+    title_suffix = "ROE"
+  )
+}
+```
+
+#### FCF Conversion
+
+```{r kpi-fcf-conversion, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = "fcf_conversion",
+    labels = "FCF Conversion",
+    colors = "steelblue",
+    y_format = "percent",
+    y_label = "FCF / NOPAT",
+    ticker = params$ticker,
+    title_suffix = "FCF Conversion"
+  )
+}
+```
+
+#### Cost of Debt
+
+```{r kpi-cost-of-debt, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = "cost_of_debt",
+    labels = "Cost of Debt",
+    colors = "steelblue",
+    y_format = "percent",
+    y_label = "Interest / Avg Debt",
+    ticker = params$ticker,
+    title_suffix = "Cost of Debt"
+  )
+}
+```
+
+#### Interest Coverage
+
+```{r kpi-coverage, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = "interest_coverage",
+    labels = "Interest Coverage",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "EBIT / Interest",
+    ticker = params$ticker,
+    title_suffix = "Interest Coverage"
+  )
+}
+```
+
+#### Leverage
+
+```{r kpi-leverage, fig.width=10, fig.height=6}
+if (!is.null(params$kpi_data) && nrow(params$kpi_data) > 0) {
+  plot_financial_ratio(
+    data = params$kpi_data,
+    ratio_cols = "debt_to_ebitda",
+    labels = "Debt / EBITDA",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "Debt / EBITDA",
+    ticker = params$ticker,
+    title_suffix = "Leverage"
+  )
+}
 ```
 
 ## Per-Share Growth {.tabset}
