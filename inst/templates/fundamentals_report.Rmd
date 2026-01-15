@@ -4,6 +4,9 @@ output: html_document
 params:
   ticker: "TICKER"
   data: NULL
+  tsr_data: NULL
+  base_date: NULL
+  drawdown_data: NULL
   per_share_revenue: NULL
   per_share_gross_profit: NULL
   per_share_ebit: NULL
@@ -12,6 +15,10 @@ params:
   per_share_fcf: NULL
   per_share_cfo: NULL
   per_share_bv: NULL
+  roic_data: NULL
+  roic_labels: NULL
+  roe_data: NULL
+  roe_labels: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -23,6 +30,39 @@ prep_metric <- function(data, metric_col) {
     dplyr::select(fiscalDateEnding, value = dplyr::all_of(metric_col)) %>%
     dplyr::filter(!is.na(value))
 }
+
+safe_bar_plot <- function(data, metric_col, ticker, title) {
+  prepped <- prep_metric(data, metric_col)
+  if (nrow(prepped) > 0) {
+    plot_fundamental_bar(prepped, ticker, title)
+  }
+}
+```
+
+## Price Charts {.tabset}
+
+### TSR Decomposition
+
+```{r tsr-decomposition, fig.width=10, fig.height=8}
+if (!is.null(params$tsr_data) && nrow(params$tsr_data) > 0) {
+  plot_tsr_decomposition(
+    data = params$tsr_data,
+    ticker = params$ticker,
+    base_date = params$base_date
+  )
+}
+```
+
+### Drawdown
+
+```{r drawdown-chart, fig.width=10, fig.height=6}
+if (!is.null(params$drawdown_data) && nrow(params$drawdown_data) > 0) {
+  plot_drawdown(
+    data = params$drawdown_data,
+    ticker = params$ticker,
+    show_anomalies = FALSE
+  )
+}
 ```
 
 ## Financial Statements {.tabset}
@@ -32,91 +72,91 @@ prep_metric <- function(data, metric_col) {
 #### Revenue
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "revenue"), params$ticker, "Revenue (TTM)")
+safe_bar_plot(params$data, "revenue", params$ticker, "Revenue (TTM)")
 ```
 
 #### Cost of Revenue
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "cost_of_revenue"), params$ticker, "Cost of Revenue (TTM)")
+safe_bar_plot(params$data, "cost_of_revenue", params$ticker, "Cost of Revenue (TTM)")
 ```
 
 #### Gross Profit
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "gross_profit"), params$ticker, "Gross Profit (TTM)")
+safe_bar_plot(params$data, "gross_profit", params$ticker, "Gross Profit (TTM)")
 ```
 
 #### SG&A
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "sga"), params$ticker, "SG&A (TTM)")
+safe_bar_plot(params$data, "sga", params$ticker, "SG&A (TTM)")
 ```
 
 #### R&D
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "rd"), params$ticker, "R&D (TTM)")
+safe_bar_plot(params$data, "rd", params$ticker, "R&D (TTM)")
 ```
 
 #### Operating Expenses
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "operating_expenses"), params$ticker, "Operating Expenses (TTM)")
+safe_bar_plot(params$data, "operating_expenses", params$ticker, "Operating Expenses (TTM)")
 ```
 
 #### Operating Income
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "operating_income"), params$ticker, "Operating Income (TTM)")
+safe_bar_plot(params$data, "operating_income", params$ticker, "Operating Income (TTM)")
 ```
 
 #### EBIT
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "ebit"), params$ticker, "EBIT (TTM)")
+safe_bar_plot(params$data, "ebit", params$ticker, "EBIT (TTM)")
 ```
 
 #### EBITDA
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "ebitda"), params$ticker, "EBITDA (TTM)")
+safe_bar_plot(params$data, "ebitda", params$ticker, "EBITDA (TTM)")
 ```
 
 #### NOPAT
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "nopat"), params$ticker, "NOPAT (TTM)")
+safe_bar_plot(params$data, "nopat", params$ticker, "NOPAT (TTM)")
 ```
 
 #### Interest Expense
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "interest_expense"), params$ticker, "Interest Expense (TTM)")
+safe_bar_plot(params$data, "interest_expense", params$ticker, "Interest Expense (TTM)")
 ```
 
 #### Income Before Tax
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "income_before_tax"), params$ticker, "Income Before Tax (TTM)")
+safe_bar_plot(params$data, "income_before_tax", params$ticker, "Income Before Tax (TTM)")
 ```
 
 #### Tax Expense
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "tax_expense"), params$ticker, "Tax Expense (TTM)")
+safe_bar_plot(params$data, "tax_expense", params$ticker, "Tax Expense (TTM)")
 ```
 
 #### Net Income
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "net_income"), params$ticker, "Net Income (TTM)")
+safe_bar_plot(params$data, "net_income", params$ticker, "Net Income (TTM)")
 ```
 
 #### D&A
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "depreciation_amortization"), params$ticker, "Depreciation & Amortization (TTM)")
+safe_bar_plot(params$data, "depreciation_amortization", params$ticker, "Depreciation & Amortization (TTM)")
 ```
 
 ### Cash Flow Statement {.tabset}
@@ -124,31 +164,31 @@ plot_fundamental_bar(prep_metric(params$data, "depreciation_amortization"), para
 #### Operating Cash Flow
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "operating_cashflow"), params$ticker, "Operating Cash Flow (TTM)")
+safe_bar_plot(params$data, "operating_cashflow", params$ticker, "Operating Cash Flow (TTM)")
 ```
 
 #### Free Cash Flow
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "fcf"), params$ticker, "Free Cash Flow (TTM)")
+safe_bar_plot(params$data, "fcf", params$ticker, "Free Cash Flow (TTM)")
 ```
 
 #### CapEx
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "capex"), params$ticker, "Capital Expenditures (TTM)")
+safe_bar_plot(params$data, "capex", params$ticker, "Capital Expenditures (TTM)")
 ```
 
 #### Dividends
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "dividends"), params$ticker, "Dividends (TTM)")
+safe_bar_plot(params$data, "dividends", params$ticker, "Dividends (TTM)")
 ```
 
 #### Buybacks
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "buybacks"), params$ticker, "Share Buybacks (TTM)")
+safe_bar_plot(params$data, "buybacks", params$ticker, "Share Buybacks (TTM)")
 ```
 
 *Positive = share repurchases (capital returned to shareholders). Negative = share issuance (dilution).*
@@ -156,7 +196,7 @@ plot_fundamental_bar(prep_metric(params$data, "buybacks"), params$ticker, "Share
 #### Total Capital Returned
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "total_capital_returned"), params$ticker, "Total Capital Returned (TTM)")
+safe_bar_plot(params$data, "total_capital_returned", params$ticker, "Total Capital Returned (TTM)")
 ```
 
 *Dividends + Share Buybacks*
@@ -164,13 +204,13 @@ plot_fundamental_bar(prep_metric(params$data, "total_capital_returned"), params$
 #### Cash from Investing
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "cashflow_investing"), params$ticker, "Cash from Investing (TTM)")
+safe_bar_plot(params$data, "cashflow_investing", params$ticker, "Cash from Investing (TTM)")
 ```
 
 #### Cash from Financing
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "cashflow_financing"), params$ticker, "Cash from Financing (TTM)")
+safe_bar_plot(params$data, "cashflow_financing", params$ticker, "Cash from Financing (TTM)")
 ```
 
 ### Balance Sheet {.tabset}
@@ -178,109 +218,109 @@ plot_fundamental_bar(prep_metric(params$data, "cashflow_financing"), params$tick
 #### Total Assets
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "total_assets"), params$ticker, "Total Assets")
+safe_bar_plot(params$data, "total_assets", params$ticker, "Total Assets")
 ```
 
 #### Current Assets
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "current_assets"), params$ticker, "Current Assets")
+safe_bar_plot(params$data, "current_assets", params$ticker, "Current Assets")
 ```
 
 #### Non-Current Assets
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "non_current_assets"), params$ticker, "Non-Current Assets")
+safe_bar_plot(params$data, "non_current_assets", params$ticker, "Non-Current Assets")
 ```
 
 #### Cash
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "cash"), params$ticker, "Cash & Short-Term Investments")
+safe_bar_plot(params$data, "cash", params$ticker, "Cash & Short-Term Investments")
 ```
 
 #### Inventory
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "inventory"), params$ticker, "Inventory")
+safe_bar_plot(params$data, "inventory", params$ticker, "Inventory")
 ```
 
 #### Receivables
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "receivables"), params$ticker, "Receivables")
+safe_bar_plot(params$data, "receivables", params$ticker, "Receivables")
 ```
 
 #### PP&E
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "ppe"), params$ticker, "Property, Plant & Equipment")
+safe_bar_plot(params$data, "ppe", params$ticker, "Property, Plant & Equipment")
 ```
 
 #### Intangibles
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "intangibles"), params$ticker, "Intangible Assets")
+safe_bar_plot(params$data, "intangibles", params$ticker, "Intangible Assets")
 ```
 
 #### Goodwill
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "goodwill"), params$ticker, "Goodwill")
+safe_bar_plot(params$data, "goodwill", params$ticker, "Goodwill")
 ```
 
 #### Total Liabilities
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "total_liabilities"), params$ticker, "Total Liabilities")
+safe_bar_plot(params$data, "total_liabilities", params$ticker, "Total Liabilities")
 ```
 
 #### Current Liabilities
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "current_liabilities"), params$ticker, "Current Liabilities")
+safe_bar_plot(params$data, "current_liabilities", params$ticker, "Current Liabilities")
 ```
 
 #### Non-Current Liabilities
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "non_current_liabilities"), params$ticker, "Non-Current Liabilities")
+safe_bar_plot(params$data, "non_current_liabilities", params$ticker, "Non-Current Liabilities")
 ```
 
 #### Total Debt
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "total_debt"), params$ticker, "Total Debt")
+safe_bar_plot(params$data, "total_debt", params$ticker, "Total Debt")
 ```
 
 #### Long-Term Debt
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "long_term_debt"), params$ticker, "Long-Term Debt")
+safe_bar_plot(params$data, "long_term_debt", params$ticker, "Long-Term Debt")
 ```
 
 #### Short-Term Debt
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "short_term_debt"), params$ticker, "Short-Term Debt")
+safe_bar_plot(params$data, "short_term_debt", params$ticker, "Short-Term Debt")
 ```
 
 #### Shareholder Equity
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "shareholder_equity"), params$ticker, "Shareholder Equity")
+safe_bar_plot(params$data, "shareholder_equity", params$ticker, "Shareholder Equity")
 ```
 
 #### Retained Earnings
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "retained_earnings"), params$ticker, "Retained Earnings")
+safe_bar_plot(params$data, "retained_earnings", params$ticker, "Retained Earnings")
 ```
 
 #### Shares Outstanding
 
 ```{r, fig.width=10, fig.height=6}
-plot_fundamental_bar(prep_metric(params$data, "shares_outstanding"), params$ticker, "Shares Outstanding")
+safe_bar_plot(params$data, "shares_outstanding", params$ticker, "Shares Outstanding")
 ```
 
 ## Per-Share Growth {.tabset}
@@ -377,6 +417,44 @@ if (!is.null(params$per_share_bv) && nrow(params$per_share_bv) > 0) {
     data = params$per_share_bv,
     ticker = params$ticker,
     metric_name = "Book Value"
+  )
+}
+```
+
+## Return Decomposition {.tabset}
+
+### ROIC
+
+```{r roic-decomposition, fig.width=10, fig.height=6}
+if (!is.null(params$roic_data) && nrow(params$roic_data) > 0) {
+  plot_dupont_over_time(
+    data = params$roic_data,
+    ticker = params$ticker,
+    return_label = params$roic_labels$return_label,
+    effect_label = params$roic_labels$effect_label,
+    numerator_name = "NOPAT",
+    denominator_name = "Invested Capital",
+    multiplier_label = params$roic_labels$multiplier_label,
+    title_suffix = params$roic_labels$title_suffix,
+    roa_label = params$roic_labels$roa_label
+  )
+}
+```
+
+### ROE
+
+```{r roe-decomposition, fig.width=10, fig.height=6}
+if (!is.null(params$roe_data) && nrow(params$roe_data) > 0) {
+  plot_dupont_over_time(
+    data = params$roe_data,
+    ticker = params$ticker,
+    return_label = params$roe_labels$return_label,
+    effect_label = params$roe_labels$effect_label,
+    numerator_name = "Net Income",
+    denominator_name = "Equity",
+    multiplier_label = params$roe_labels$multiplier_label,
+    title_suffix = params$roe_labels$title_suffix,
+    roa_label = params$roe_labels$roa_label
   )
 }
 ```

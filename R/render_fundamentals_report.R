@@ -47,6 +47,56 @@ render_fundamentals_report <- function(
       fcf = calculate_fcf(operatingCashflow_ttm, capitalExpenditures_ttm)
     )
 
+  # Prepare TSR decomposition data
+  tsr_data <- NULL
+  base_date <- NULL
+
+  price_data <- artifacts$price_data
+  has_close <- "close" %in% names(price_data)
+  has_split <- "split_coefficient" %in% names(price_data)
+
+  if (has_close && has_split) {
+    ticker_prices <- price_data %>%
+      dplyr::filter(ticker == !!ticker, date >= start_date) %>%
+      dplyr::select(date, adjusted_close, close, split_coefficient) %>%
+      dplyr::filter(
+        !is.na(adjusted_close), adjusted_close > 0,
+        !is.na(close), close > 0
+      ) %>%
+      dplyr::arrange(date)
+
+    if (!is.null(end_date)) {
+      ticker_prices <- ticker_prices %>%
+        dplyr::filter(date <= end_date)
+    }
+
+    quarterly_shares <- ttm_with_calcs %>%
+      dplyr::select(date = fiscalDateEnding, shares = commonStockSharesOutstanding) %>%
+      dplyr::filter(!is.na(shares), shares > 0) %>%
+      dplyr::arrange(date)
+
+    tsr_input <- ticker_prices %>%
+      dplyr::left_join(quarterly_shares, by = "date") %>%
+      tidyr::fill(shares, .direction = "down") %>%
+      dplyr::filter(!is.na(shares))
+
+    if (nrow(tsr_input) > 1) {
+      base_date <- min(tsr_input$date)
+      tsr_data <- calculate_tsr_decomposition(tsr_input, base_date = base_date)
+    }
+  }
+
+  # Prepare drawdown data
+  drawdown_data <- price_data %>%
+    dplyr::filter(ticker == !!ticker, date >= start_date) %>%
+    {
+      if (!is.null(end_date)) dplyr::filter(., date <= end_date) else .
+    } %>%
+    dplyr::arrange(date) %>%
+    dplyr::select(date, price = adjusted_close) %>%
+    dplyr::filter(!is.na(price), price > 0) %>%
+    dplyr::mutate(drawdown = drawdown_from_high(price))
+
   # Prepare per-share decomposition data for each metric
   per_share_revenue <- prepare_per_share_decomposition_data(
     ttm_with_calcs, ticker, "totalRevenue_ttm", start_date, end_date
@@ -73,6 +123,28 @@ render_fundamentals_report <- function(
     ttm_with_calcs, ticker, "totalShareholderEquity", start_date, end_date
   )
 
+  # Prepare ROIC decomposition data
+  roic_result <- prepare_dupont_over_time_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    numerator = "nopat",
+    denominator = "invested_capital",
+    artifacts = artifacts
+  )
+  roic_labels <- get_dupont_labels("nopat", "invested_capital")
+
+  # Prepare ROE decomposition data
+  roe_result <- prepare_dupont_over_time_data(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    numerator = "netIncome",
+    denominator = "equity",
+    artifacts = artifacts
+  )
+  roe_labels <- get_dupont_labels("netIncome", "equity")
+
   template_path <- system.file(
     "templates", "fundamentals_report.Rmd",
     package = "msdataviz"
@@ -95,6 +167,9 @@ render_fundamentals_report <- function(
     params = list(
       ticker = ticker,
       data = fundamentals,
+      tsr_data = tsr_data,
+      base_date = base_date,
+      drawdown_data = drawdown_data,
       per_share_revenue = per_share_revenue,
       per_share_gross_profit = per_share_gross_profit,
       per_share_ebit = per_share_ebit,
@@ -102,7 +177,11 @@ render_fundamentals_report <- function(
       per_share_nopat = per_share_nopat,
       per_share_fcf = per_share_fcf,
       per_share_cfo = per_share_cfo,
-      per_share_bv = per_share_bv
+      per_share_bv = per_share_bv,
+      roic_data = roic_result$data,
+      roic_labels = roic_labels,
+      roe_data = roe_result$data,
+      roe_labels = roe_labels
     ),
     quiet = TRUE
   )
