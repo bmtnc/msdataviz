@@ -102,6 +102,20 @@ ui <- shiny::fluidPage(
                 shiny::tabPanel("FCF", shiny::plotOutput("ps_fcf_plot", height = "500px")),
                 shiny::tabPanel("Book Value", shiny::plotOutput("ps_bv_plot", height = "500px"))
               )
+            ),
+            # KPIs
+            shiny::tabPanel(
+              "KPIs",
+              shiny::tabsetPanel(
+                shiny::tabPanel("Margins", shiny::plotOutput("kpi_margins_plot", height = "500px")),
+                shiny::tabPanel("ROIC", shiny::plotOutput("kpi_roic_plot", height = "500px")),
+                shiny::tabPanel("GROIC", shiny::plotOutput("kpi_groic_plot", height = "500px")),
+                shiny::tabPanel("ROE", shiny::plotOutput("kpi_roe_plot", height = "500px")),
+                shiny::tabPanel("FCF Conversion", shiny::plotOutput("kpi_fcf_conversion_plot", height = "500px")),
+                shiny::tabPanel("Cost of Debt", shiny::plotOutput("kpi_cost_of_debt_plot", height = "500px")),
+                shiny::tabPanel("Interest Coverage", shiny::plotOutput("kpi_interest_coverage_plot", height = "500px")),
+                shiny::tabPanel("Leverage", shiny::plotOutput("kpi_leverage_plot", height = "500px"))
+              )
             )
           )
         ),
@@ -173,6 +187,15 @@ server <- function(input, output, session) {
         ),
         fcf = calculate_fcf(operatingCashflow_ttm, capitalExpenditures_ttm)
       )
+  })
+
+  # Reactive: KPI data for financial ratio charts
+  kpi_data <- shiny::reactive({
+    shiny::req(input$ticker)
+    fund_data <- fundamentals_data()
+    if (!is.null(fund_data) && nrow(fund_data) > 0) {
+      prepare_kpi_data(fund_data)
+    }
   })
 
   # Helper: safe bar plot
@@ -419,6 +442,144 @@ server <- function(input, output, session) {
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "Book Value")
+    }
+  })
+
+  # === KPIs ===
+
+  output$kpi_margins_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = c("gross_margin", "operating_margin", "net_margin"),
+        labels = c("Gross Margin", "Operating Margin", "Net Margin"),
+        colors = c("steelblue", "darkgreen", "navy"),
+        y_format = "percent",
+        y_label = "Margin",
+        ticker = input$ticker,
+        title_suffix = "Profit Margins"
+      )
+    }
+  })
+
+  output$kpi_roic_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "roic",
+        labels = "ROIC",
+        colors = "navy",
+        y_format = "percent",
+        y_label = "NOPAT / IC",
+        ticker = input$ticker,
+        title_suffix = "ROIC"
+      )
+    }
+  })
+
+  output$kpi_groic_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "groic",
+        labels = "GROIC",
+        colors = "steelblue",
+        y_format = "percent",
+        y_label = "Gross Profit / IC",
+        ticker = input$ticker,
+        title_suffix = "GROIC"
+      )
+    }
+  })
+
+  output$kpi_roe_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "roe",
+        labels = "ROE",
+        colors = "darkgreen",
+        y_format = "percent",
+        y_label = "Net Income / Equity",
+        ticker = input$ticker,
+        title_suffix = "ROE"
+      )
+    }
+  })
+
+  output$kpi_fcf_conversion_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "fcf_conversion",
+        labels = "FCF Conversion",
+        colors = "steelblue",
+        y_format = "percent",
+        y_label = "FCF / NOPAT",
+        ticker = input$ticker,
+        title_suffix = "FCF Conversion"
+      )
+    }
+  })
+
+  output$kpi_cost_of_debt_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "cost_of_debt",
+        labels = "Cost of Debt",
+        colors = "steelblue",
+        y_format = "percent",
+        y_label = "Interest / Avg Debt",
+        ticker = input$ticker,
+        title_suffix = "Cost of Debt"
+      )
+    }
+  })
+
+  output$kpi_interest_coverage_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "interest_coverage",
+        labels = "Interest Coverage",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "EBIT / Interest",
+        ticker = input$ticker,
+        title_suffix = "Interest Coverage"
+      )
+    }
+  })
+
+  output$kpi_leverage_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- kpi_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "debt_to_ebitda",
+        labels = "Debt / EBITDA",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "Debt / EBITDA",
+        ticker = input$ticker,
+        title_suffix = "Leverage"
+      )
     }
   })
 
