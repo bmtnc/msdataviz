@@ -1,0 +1,60 @@
+FIRST PRINCIPLES: EQUITY VALUATION & ANALYTICS PHILOSOPHY
+
+Stocks are unfixed income. That's it. A stock price is the NPV of all future free cash flows payable to shareholders, in perpetuity. Fixed income is the NPV of coupons plus principal over a fixed horizon—equities are the same thing, just without the fixed part. The underlying first principles are identical. Our inability to model stocks like bonds is entirely due to the ill-defined nature of the problem, not because they're fundamentally different.
+
+When you see a stock price, you're seeing the market's collective expectations of future FCF, discounted back. When prices change, it's because either (a) FCF expectations changed, or (b) the discount rate changed. That's it. FCF expectation changes tend to unfold over time—this is where medium-term momentum manifests. Discount rate changes tend to mean-revert.
+
+Factors like value, growth, momentum are just characteristics. They're descriptive, not fundamental. They don't explain what a stock "is"—they describe surface features. A growth stock is the NPV of future cash flows in the same way a value stock is. The differences show up in duration and variance of those cash flows. High beta stocks are high beta because the market's FCF expectations are unstable. Everything comes back to the time value of money.
+
+The standard institutional approach: project EPS 5 years out, slap a terminal multiple on year 5, back into an IRR. Go long high IRRs, short low IRRs. That 5-year projection is usually a linear extrapolation or management guidance taken at face value. The terminal multiple is hand-wavy—but here's the thing most people miss: a P/E multiple IS a DCF. It's the output of the Gordon Growth Model. Price = EPS / (r - g). So that "terminal multiple" is really just another perpetual DCF with implicit growth and discount assumptions.
+
+Trailing metrics like ROIC, margins, EPS are only informative for mature businesses with excess earnings power. For early-stage companies reinvesting heavily, trailing profitability is misleading—you're measuring the investment phase, not the payoff. All that matters for valuation is future profits, not trailing.
+
+WHY QUANTS MODEL RETURNS INSTEAD OF FCF
+
+Mainstream quant finance models percentage changes in price—"returns" are just daily price changes. The reason quants haven't modeled equities like fixed income is convenience, not correctness. Unfixed income is an ill-defined problem. Percentage changes over short horizons are mathematically well-behaved and work with tools like linear regressions. Factor regressions have their uses (e.g., neutralizing unintended exposures), but that usefulness is limited to short horizons and requires high turnover. Models must be continuously refit, factor betas are unstable over time. It's a fundamentally different game than long-term fundamental investing.
+
+DURATION AND VARIANCE: THE REAL DIFFERENTIATOR
+
+Forget "value" vs "growth"—those are surface labels. The more fundamental way to categorize companies is by duration and variance of their cash flows. Cyclicals are shorter duration, higher variance—their FCF is front-loaded and volatile. Idiosyncratic compounders are longer duration, lower variance—more of their value sits in the distant future and it's more stable. High vol / high beta stocks are high vol because the market's underlying FCF assumptions are in flux. Duration and variance map directly to the hidden FCF curve that prices reflect.
+
+A FUNDAMENTAL COST OF EQUITY
+
+The CAPM is convenient but philosophically broken. Beta measures daily price co-movement, not fundamental risk. I don't think risk and volatility are the same thing. Cost of debt is observable and rooted in first principles. Cost of equity should be too—derived from fundamentals and capital structure, not trailing price statistics.
+
+Here's the approach: model cost of debt first, then extend to cost of equity via subordination.
+
+Step 1: Model interest rate spreads cross-sectionally (Barra-style). We have quarterly financials for thousands of companies—interest expense, debt levels, so we can back into implied interest rates. Use characteristics as factors: LGD (loss given default), interest coverage, leverage, sector dummies, ROA, growth. Enforce the risk-free rate as an intercept. Credit spreads are far less noisy than equity returns, so this should work well.
+- LGD = max(0, 1 - Tangible Assets / Total Debt)
+- Tangible Assets = Total Assets - Goodwill - Intangibles
+
+Step 2: Nowcast to higher frequency using FRED BAML credit index yields. Output is a weekly spread estimate for each company.
+
+Step 3: Derive cost of equity from the spread. Equity is subordinated to debt, so it should demand a premium. Two approaches:
+- Flows-based: CoE = r_f + Spread * (Coverage / (Coverage - 1))
+- Asset-based: CoE = r_f + Spread / (1 - D/TA)
+
+Both capture the same intuition: the thinner the cushion above equity (whether measured by earnings coverage or asset coverage), the higher the required return. This gives us a cost of equity rooted in fundamentals, not price statistics.
+
+THE NAME OF THE GAME
+
+Given current price and a modeled cost of equity, we can reverse-engineer what future FCF trajectory the market is implicitly pricing. The investor's job:
+- Extract the market's implied expectations from price
+- Form your own expectations (informed by whatever—competitive dynamics, governance, base rates)
+- Compare the two
+- If your expectations exceed the market's, go long. If lower, short or avoid.
+
+The alpha lives in the gap between what the market expects and what you expect.
+
+ANALYTICS PHILOSOPHY
+
+Three tiers:
+- Tier 1: Reporting data (e.g., a price chart). Table stakes.
+- Tier 2: Adding context (peer comparisons, base rates, anomaly flags, trends). The bulk of useful analytics.
+- Tier 3: Something novel (e.g., backing out implied expectations). The punchline, if there is one.
+
+Tier 2 informs your independent view. Tier 3 surfaces what the market believes. The comparison is where the edge comes from.
+
+THE GENERALIZABILITY CHALLENGE
+
+Analytics need to work across company types: early-stage growers with no profits, mature compounders with high ROICs, cyclicals with earnings volatility, distressed situations, boring blue chips. The same metric can be highly informative for one type and actively misleading for another. Trailing ROIC is meaningful for MSFT—it reflects durable earning power. For an early-stage reinvestor, trailing ROIC is noise—you're seeing investment, not payoff. Same for margins, same for EPS. Any framework we build needs to either segment companies by stage and apply different lenses, find metrics that are informative across the lifecycle, or be explicit about when each analytic is and isn't meaningful.

@@ -15,6 +15,8 @@ render_decomposition_report(
   kpi_metric = NULL,
   dupont_numerator = NULL,
   dupont_denominator = NULL,
+  drawdown_peer_group = "subsector",
+  drawdown_anomaly_mode = "cross_sectional",
   s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
   aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 )
@@ -39,6 +41,10 @@ render_decomposition_report(
 \item{dupont_numerator}{Override numerator for DuPont}
 
 \item{dupont_denominator}{Override denominator: "equity", "invested_capital", "total_assets"}
+
+\item{drawdown_peer_group}{Peer group for drawdown comparison: "sector", "subsector", "industry"}
+
+\item{drawdown_anomaly_mode}{Anomaly detection mode: "both", "time_series", "cross_sectional"}
 
 \item{s3_bucket}{S3 bucket name}
 

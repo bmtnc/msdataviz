@@ -19,16 +19,12 @@ plot_fundamental_bar <- function(data, ticker, metric_name) {
     ggplot2::geom_col(fill = "steelblue", alpha = 0.7) +
     ggplot2::labs(
       title = paste0(ticker, ": ", metric_name),
-      x = "Fiscal Date Ending",
+      x = NULL,
       y = metric_name
     ) +
-    ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
-    ggplot2::theme(
-      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-      plot.title = ggplot2::element_text(size = 14, face = "bold")
-    )
+    ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y")
 
-  p <- add_scale_suffix(p, max(data$value, na.rm = TRUE))
+  p <- add_scale_suffix(p, max(abs(data$value), na.rm = TRUE))
 
   p
 }

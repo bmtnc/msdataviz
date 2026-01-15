@@ -17,7 +17,10 @@
 #' @param min_subsector_stocks Minimum stocks required to show subsector line (default: 10)
 #' @param min_industry_stocks Minimum stocks required to show industry line (default: 10)
 #' @param show_anomalies Whether to overlay anomaly points (default: FALSE)
-#' @param anomaly_threshold Z-score threshold for anomaly detection (default: 2)
+#' @param anomaly_mode Which anomaly detection to use: "both", "time_series", "cross_sectional"
+#' @param anomaly_threshold Z-score threshold for time series anomaly detection (default: 2)
+#' @param peer_drawdowns Data frame with peer drawdowns for cross-sectional comparison.
+#'   Must have columns: date, ticker, drawdown.
 #'
 #' @return A ggplot2 object
 #' @export
@@ -35,8 +38,10 @@ plot_drawdown <- function(
   n_industry_stocks = NULL,
   min_subsector_stocks = 10,
   min_industry_stocks = 10,
-  show_anomalies = FALSE,
-  anomaly_threshold = 2
+  show_anomalies = TRUE,
+  anomaly_mode = c("both", "time_series", "cross_sectional"),
+  anomaly_threshold = 1,
+  peer_drawdowns = NULL
 ) {
   avpipeline::validate_non_empty(data, "data")
   avpipeline::validate_character_scalar(
@@ -126,11 +131,37 @@ plot_drawdown <- function(
 
   # Add anomaly points if requested
   if (show_anomalies) {
-    anomaly_flags <- ts_anomaly(
-      plot_data$drawdown,
-      threshold = anomaly_threshold,
-      direction = "low"
-    )
+    anomaly_mode <- match.arg(anomaly_mode)
+
+    # Time series anomalies (vs own history)
+    ts_flags <- if (anomaly_mode %in% c("both", "time_series")) {
+      ts_anomaly(
+        plot_data$drawdown,
+        threshold = anomaly_threshold,
+        direction = "low"
+      )
+    } else {
+      rep(TRUE, nrow(plot_data))
+    }
+
+    # Cross-sectional anomalies (vs peers at each date)
+    cs_flags <- if (anomaly_mode %in% c("both", "cross_sectional") && !is.null(peer_drawdowns)) {
+      vapply(seq_len(nrow(plot_data)), function(i) {
+        date_i <- plot_data$date[i]
+        drawdown_i <- plot_data$drawdown[i]
+        peers_i <- peer_drawdowns$drawdown[peer_drawdowns$date == date_i]
+        if (length(peers_i) < 3) {
+          return(FALSE)
+        }
+        cross_sectional_anomaly(drawdown_i, peers_i, threshold = anomaly_threshold, direction = "low")
+      }, logical(1))
+    } else {
+      rep(TRUE, nrow(plot_data))
+    }
+
+    # Combine flags
+    anomaly_flags <- ts_flags & cs_flags
+
     anomaly_data <- dplyr::filter(
       plot_data,
       anomaly_flags & !is.na(anomaly_flags)
@@ -139,7 +170,7 @@ plot_drawdown <- function(
       p <- p +
         ggplot2::geom_point(
           data = anomaly_data,
-          color = "#EF767A",
+          color = "#E71D36",
           size = 1
         )
     }

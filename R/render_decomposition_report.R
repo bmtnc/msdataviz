@@ -13,6 +13,8 @@
 #' @param kpi_metric Override metric for KPI chart
 #' @param dupont_numerator Override numerator for DuPont
 #' @param dupont_denominator Override denominator: "equity", "invested_capital", "total_assets"
+#' @param drawdown_peer_group Peer group for drawdown comparison: "sector", "subsector", "industry"
+#' @param drawdown_anomaly_mode Anomaly detection mode: "both", "time_series", "cross_sectional"
 #' @param s3_bucket S3 bucket name
 #' @param aws_region AWS region
 #'
@@ -29,6 +31,8 @@ render_decomposition_report <- function(
     kpi_metric = NULL,
     dupont_numerator = NULL,
     dupont_denominator = NULL,
+    drawdown_peer_group = "subsector",
+    drawdown_anomaly_mode = "cross_sectional",
     s3_bucket = Sys.getenv("S3_BUCKET", "avpipeline-artifacts-prod"),
     aws_region = Sys.getenv("AWS_REGION", "us-east-1")
 ) {
@@ -101,6 +105,32 @@ render_decomposition_report <- function(
     aws_region = aws_region
   )
 
+  # Prepare drawdown data from price artifact
+  drawdown_data <- artifacts$price_data %>%
+    dplyr::filter(
+      ticker == !!ticker,
+      date >= start_date
+    ) %>%
+    {
+      if (!is.null(end_date)) dplyr::filter(., date <= end_date) else .
+    } %>%
+    dplyr::arrange(date) %>%
+    dplyr::transmute(
+      date = date,
+      price = adjusted_close,
+      drawdown = drawdown_from_high(adjusted_close)
+    )
+
+  # Prepare peer drawdowns for cross-sectional comparison
+  peer_drawdowns <- prepare_peer_drawdowns(
+    ticker = ticker,
+    start_date = start_date,
+    end_date = end_date,
+    peer_group = drawdown_peer_group,
+    price_data = artifacts$price_data,
+    ttm_data = artifacts$ttm_data
+  )
+
   # Find template
   template_path <- system.file(
     "templates", "decomposition_report.Rmd",
@@ -149,7 +179,11 @@ render_decomposition_report <- function(
       ic_decomposition_data = ic_result$ic_decomposition_data,
       # NOPAT decomposition
       nopat_decomposition_data = nopat_result$nopat_decomposition_data,
-      nopat_metric_name = "NOPAT"
+      nopat_metric_name = "NOPAT",
+      # Drawdown
+      drawdown_data = drawdown_data,
+      peer_drawdowns = peer_drawdowns,
+      drawdown_anomaly_mode = drawdown_anomaly_mode
     ),
     quiet = TRUE
   )

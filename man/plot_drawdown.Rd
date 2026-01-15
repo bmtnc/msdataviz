@@ -18,8 +18,10 @@ plot_drawdown(
   n_industry_stocks = NULL,
   min_subsector_stocks = 10,
   min_industry_stocks = 10,
-  show_anomalies = FALSE,
-  anomaly_threshold = 2
+  show_anomalies = TRUE,
+  anomaly_mode = c("both", "time_series", "cross_sectional"),
+  anomaly_threshold = 1,
+  peer_drawdowns = NULL
 )
 }
 \arguments{
@@ -51,7 +53,12 @@ plot_drawdown(
 
 \item{show_anomalies}{Whether to overlay anomaly points (default: FALSE)}
 
-\item{anomaly_threshold}{Z-score threshold for anomaly detection (default: 2)}
+\item{anomaly_mode}{Which anomaly detection to use: "both", "time_series", "cross_sectional"}
+
+\item{anomaly_threshold}{Z-score threshold for time series anomaly detection (default: 2)}
+
+\item{peer_drawdowns}{Data frame with peer drawdowns for cross-sectional comparison.
+Must have columns: date, ticker, drawdown.}
 }
 \value{
 A ggplot2 object

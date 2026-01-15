@@ -4,12 +4,12 @@
 \alias{add_scale_suffix}
 \title{Add appropriate y-axis scale suffix based on magnitude}
 \usage{
-add_scale_suffix(p, max_value)
+add_scale_suffix(p, max_abs_value)
 }
 \arguments{
 \item{p}{ggplot object}
 
-\item{max_value}{Maximum value to determine scale}
+\item{max_abs_value}{Maximum absolute value to determine scale}
 }
 \value{
 Modified ggplot object
