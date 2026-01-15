@@ -19,6 +19,7 @@ Imports:
     rlang,
     rmarkdown,
     scales,
+    shiny,
     tibble,
     tidyr
 Remotes:
