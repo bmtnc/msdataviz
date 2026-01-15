@@ -4,6 +4,14 @@ output: html_document
 params:
   ticker: "TICKER"
   data: NULL
+  per_share_revenue: NULL
+  per_share_gross_profit: NULL
+  per_share_ebit: NULL
+  per_share_ebitda: NULL
+  per_share_nopat: NULL
+  per_share_fcf: NULL
+  per_share_cfo: NULL
+  per_share_bv: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -273,4 +281,102 @@ plot_fundamental_bar(prep_metric(params$data, "retained_earnings"), params$ticke
 
 ```{r, fig.width=10, fig.height=6}
 plot_fundamental_bar(prep_metric(params$data, "shares_outstanding"), params$ticker, "Shares Outstanding")
+```
+
+## Per-Share Growth {.tabset}
+
+### Revenue
+
+```{r per-share-revenue, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_revenue) && nrow(params$per_share_revenue) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_revenue,
+    ticker = params$ticker,
+    metric_name = "Revenue"
+  )
+}
+```
+
+### Gross Profit
+
+```{r per-share-gross-profit, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_gross_profit) && nrow(params$per_share_gross_profit) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_gross_profit,
+    ticker = params$ticker,
+    metric_name = "Gross Profit"
+  )
+}
+```
+
+### EBIT
+
+```{r per-share-ebit, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_ebit) && nrow(params$per_share_ebit) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_ebit,
+    ticker = params$ticker,
+    metric_name = "EBIT"
+  )
+}
+```
+
+### EBITDA
+
+```{r per-share-ebitda, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_ebitda) && nrow(params$per_share_ebitda) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_ebitda,
+    ticker = params$ticker,
+    metric_name = "EBITDA"
+  )
+}
+```
+
+### NOPAT
+
+```{r per-share-nopat, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_nopat) && nrow(params$per_share_nopat) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_nopat,
+    ticker = params$ticker,
+    metric_name = "NOPAT"
+  )
+}
+```
+
+### FCF
+
+```{r per-share-fcf, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_fcf) && nrow(params$per_share_fcf) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_fcf,
+    ticker = params$ticker,
+    metric_name = "FCF"
+  )
+}
+```
+
+### Operating Cash Flow
+
+```{r per-share-cfo, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_cfo) && nrow(params$per_share_cfo) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_cfo,
+    ticker = params$ticker,
+    metric_name = "Operating Cash Flow"
+  )
+}
+```
+
+### Book Value
+
+```{r per-share-bv, fig.width=10, fig.height=6}
+if (!is.null(params$per_share_bv) && nrow(params$per_share_bv) > 0) {
+  plot_share_count_decomposition(
+    data = params$per_share_bv,
+    ticker = params$ticker,
+    metric_name = "Book Value"
+  )
+}
 ```
