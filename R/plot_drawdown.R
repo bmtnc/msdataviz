@@ -223,13 +223,13 @@ plot_drawdown <- function(
   # Build linetype scale
   linetype_values <- c()
   if (!is.null(sector_median_drawdown)) {
-    linetype_values[sector_legend] <- "dashed"
+    linetype_values[sector_legend] <- "solid"
   }
   if (show_subsector) {
-    linetype_values[subsector_legend] <- "dashed"
+    linetype_values[subsector_legend] <- "solid"
   }
   if (show_industry) {
-    linetype_values[industry_legend] <- "dashed"
+    linetype_values[industry_legend] <- "solid"
   }
 
   if (length(linetype_values) > 0) {

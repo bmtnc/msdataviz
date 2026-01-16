@@ -89,8 +89,7 @@ plot_financial_ratio <- function(
     p <- p +
       ggplot2::geom_line(
         ggplot2::aes(y = .data[[peer_col]], color = peer_label),
-        linewidth = 0.5,
-        linetype = "dashed"
+        linewidth = 0.4
       )
   }
 

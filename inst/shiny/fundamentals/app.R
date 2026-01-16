@@ -292,16 +292,16 @@ server <- function(input, output, session) {
     )
   })
 
-  # Reactive: Universe valuations (all tickers, quarterly, computed once)
+  # Reactive: Universe valuations (all tickers, daily, computed once)
   universe_valuations <- shiny::reactive({
-    prepare_universe_valuations(
+    prepare_universe_valuations_daily(
       artifacts$ttm_data,
       artifacts$price_data,
       as.Date("2014-12-31")
     )
   })
 
-  # Reactive: Valuation peer medians based on selected peer universe
+  # Reactive: Valuation peer medians based on selected peer universe (daily frequency)
   valuation_peer_medians <- shiny::reactive({
     shiny::req(input$ticker, input$peer_universe)
 
@@ -315,9 +315,9 @@ server <- function(input, output, session) {
         dplyr::filter(.data[[input$peer_universe]] == peer_group)
     }
 
-    # Calculate medians by calendar quarter
+    # Calculate medians by date (daily frequency)
     data %>%
-      dplyr::group_by(calendar_quarter_ending) %>%
+      dplyr::group_by(date) %>%
       dplyr::summarize(
         peer_price_to_sales = median(price_to_sales, na.rm = TRUE),
         peer_price_to_book = median(price_to_book, na.rm = TRUE),
@@ -335,14 +335,11 @@ server <- function(input, output, session) {
       )
   })
 
-  # Reactive: Valuation data with peer medians joined
-  # Note: ticker data is daily, peer medians are quarterly (stepped line)
+  # Reactive: Valuation data with peer medians joined (both at daily frequency)
   valuation_data_with_peers <- shiny::reactive({
     shiny::req(valuation_data(), valuation_peer_medians())
-    val_data <- valuation_data() %>%
-      dplyr::mutate(calendar_quarter_ending = lubridate::ceiling_date(date, "quarter") - 1)
-    val_data %>%
-      dplyr::left_join(valuation_peer_medians(), by = "calendar_quarter_ending")
+    valuation_data() %>%
+      dplyr::left_join(valuation_peer_medians(), by = "date")
   })
 
   # Helper: safe bar plot
