@@ -12,7 +12,11 @@ plot_financial_ratio(
   y_format = "percent",
   y_label = NULL,
   ticker = NULL,
-  title_suffix = NULL
+  title_suffix = NULL,
+  peer_col = NULL,
+  peer_label = "Peer Median",
+  peer_color = "gray50",
+  n_peers = NULL
 )
 }
 \arguments{
@@ -31,6 +35,14 @@ plot_financial_ratio(
 \item{ticker}{Ticker symbol for title}
 
 \item{title_suffix}{Optional suffix for title (default: NULL, uses y_label)}
+
+\item{peer_col}{Optional column name for peer median line}
+
+\item{peer_label}{Label for peer median in legend (default: "Peer Median")}
+
+\item{peer_color}{Color for peer median line (default: "gray50")}
+
+\item{n_peers}{Number of peers for caption (default: NULL)}
 }
 \value{
 A ggplot2 object

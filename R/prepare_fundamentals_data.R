@@ -22,6 +22,7 @@ prepare_fundamentals_data <- function(ticker, ttm_data, start_date, end_date = N
     ) %>%
     dplyr::select(
       fiscalDateEnding,
+      calendar_quarter_ending,
 
       # Income Statement (TTM)
       revenue = totalRevenue_ttm,

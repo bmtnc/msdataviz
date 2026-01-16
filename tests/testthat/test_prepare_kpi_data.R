@@ -1,6 +1,7 @@
 test_that("prepare_kpi_data calculates all ratios", {
   test_data <- data.frame(
     fiscalDateEnding = as.Date(c("2023-03-31", "2023-06-30", "2023-09-30")),
+    calendar_quarter_ending = as.Date(c("2023-03-31", "2023-06-30", "2023-09-30")),
     revenue = c(100, 110, 120),
     gross_profit = c(40, 44, 48),
     operating_income = c(20, 22, 24),
@@ -34,6 +35,7 @@ test_that("prepare_kpi_data calculates all ratios", {
 test_that("prepare_kpi_data calculates margins correctly", {
   test_data <- data.frame(
     fiscalDateEnding = as.Date("2023-03-31"),
+    calendar_quarter_ending = as.Date("2023-03-31"),
     revenue = 100,
     gross_profit = 40,
     operating_income = 20,
@@ -57,6 +59,7 @@ test_that("prepare_kpi_data calculates margins correctly", {
 test_that("prepare_kpi_data calculates avg debt for cost of debt", {
   test_data <- data.frame(
     fiscalDateEnding = as.Date(c("2023-03-31", "2023-06-30")),
+    calendar_quarter_ending = as.Date(c("2023-03-31", "2023-06-30")),
     revenue = c(100, 100),
     gross_profit = c(40, 40),
     operating_income = c(20, 20),

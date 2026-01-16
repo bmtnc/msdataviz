@@ -45,6 +45,7 @@ prepare_kpi_data <- function(data) {
     ) %>%
     dplyr::select(
       date = fiscalDateEnding,
+      calendar_quarter_ending,
       gross_margin,
       operating_margin,
       net_margin,

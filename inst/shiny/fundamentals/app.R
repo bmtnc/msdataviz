@@ -38,7 +38,20 @@ ui <- shiny::fluidPage(
         )
       ),
       shiny::hr(),
-      shiny::uiOutput("company_info")
+      shiny::uiOutput("company_info"),
+      shiny::hr(),
+      shiny::h5("KPI Peer Universe"),
+      shiny::radioButtons(
+        inputId = "peer_universe",
+        label = NULL,
+        choices = c(
+          "Market" = "market",
+          "Sector" = "sector",
+          "Subsector" = "subsector",
+          "Industry" = "industry"
+        ),
+        selected = "subsector"
+      )
     ),
 
     shiny::mainPanel(
@@ -205,6 +218,49 @@ server <- function(input, output, session) {
     if (!is.null(fund_data) && nrow(fund_data) > 0) {
       prepare_kpi_data(fund_data)
     }
+  })
+
+  # Reactive: Universe KPIs (all tickers, computed once)
+  universe_kpis <- shiny::reactive({
+    prepare_universe_kpis(artifacts$ttm_data, as.Date("2014-12-31"))
+  })
+
+  # Reactive: Peer medians based on selected peer universe
+  # Groups by calendar_quarter_ending (not fiscalDateEnding) since companies have different fiscal calendars
+  peer_medians <- shiny::reactive({
+    shiny::req(input$ticker, input$peer_universe)
+
+    data <- universe_kpis()
+
+    # Filter to peer group (unless "market" which uses all tickers)
+    if (input$peer_universe != "market") {
+      info <- selected_info()
+      peer_group <- info[[input$peer_universe]]
+      data <- data %>%
+        dplyr::filter(.data[[input$peer_universe]] == peer_group)
+    }
+
+    # Calculate medians by calendar quarter (normalized quarter-end dates)
+    data %>%
+      dplyr::group_by(calendar_quarter_ending) %>%
+      dplyr::summarize(
+        peer_roic = median(roic, na.rm = TRUE),
+        peer_groic = median(groic, na.rm = TRUE),
+        peer_roe = median(roe, na.rm = TRUE),
+        peer_fcf_conversion = median(fcf_conversion, na.rm = TRUE),
+        peer_cost_of_debt = median(cost_of_debt, na.rm = TRUE),
+        peer_interest_coverage = median(interest_coverage, na.rm = TRUE),
+        peer_debt_to_ebitda = median(debt_to_ebitda, na.rm = TRUE),
+        n_peers = dplyr::n_distinct(ticker),
+        .groups = "drop"
+      )
+  })
+
+  # Reactive: KPI data with peer medians joined
+  kpi_data_with_peers <- shiny::reactive({
+    shiny::req(kpi_data(), peer_medians())
+    kpi_data() %>%
+      dplyr::left_join(peer_medians(), by = "calendar_quarter_ending")
   })
 
   # Helper: safe bar plot
@@ -475,8 +531,9 @@ server <- function(input, output, session) {
 
   output$kpi_roic_plot <- shiny::renderPlot({
     shiny::req(input$ticker)
-    data <- kpi_data()
+    data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
       plot_financial_ratio(
         data = data,
         ratio_cols = "roic",
@@ -485,15 +542,19 @@ server <- function(input, output, session) {
         y_format = "percent",
         y_label = "NOPAT / IC",
         ticker = input$ticker,
-        title_suffix = "ROIC"
+        title_suffix = "ROIC",
+        peer_col = "peer_roic",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
       )
     }
   })
 
   output$kpi_groic_plot <- shiny::renderPlot({
     shiny::req(input$ticker)
-    data <- kpi_data()
+    data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
       plot_financial_ratio(
         data = data,
         ratio_cols = "groic",
@@ -502,15 +563,19 @@ server <- function(input, output, session) {
         y_format = "percent",
         y_label = "Gross Profit / IC",
         ticker = input$ticker,
-        title_suffix = "GROIC"
+        title_suffix = "GROIC",
+        peer_col = "peer_groic",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
       )
     }
   })
 
   output$kpi_roe_plot <- shiny::renderPlot({
     shiny::req(input$ticker)
-    data <- kpi_data()
+    data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
       plot_financial_ratio(
         data = data,
         ratio_cols = "roe",
@@ -519,15 +584,19 @@ server <- function(input, output, session) {
         y_format = "percent",
         y_label = "Net Income / Equity",
         ticker = input$ticker,
-        title_suffix = "ROE"
+        title_suffix = "ROE",
+        peer_col = "peer_roe",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
       )
     }
   })
 
   output$kpi_fcf_conversion_plot <- shiny::renderPlot({
     shiny::req(input$ticker)
-    data <- kpi_data()
+    data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
       plot_financial_ratio(
         data = data,
         ratio_cols = "fcf_conversion",
@@ -536,15 +605,19 @@ server <- function(input, output, session) {
         y_format = "percent",
         y_label = "FCF / NOPAT",
         ticker = input$ticker,
-        title_suffix = "FCF Conversion"
+        title_suffix = "FCF Conversion",
+        peer_col = "peer_fcf_conversion",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
       )
     }
   })
 
   output$kpi_cost_of_debt_plot <- shiny::renderPlot({
     shiny::req(input$ticker)
-    data <- kpi_data()
+    data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
       plot_financial_ratio(
         data = data,
         ratio_cols = "cost_of_debt",
@@ -553,15 +626,19 @@ server <- function(input, output, session) {
         y_format = "percent",
         y_label = "Interest / Avg Debt",
         ticker = input$ticker,
-        title_suffix = "Cost of Debt"
+        title_suffix = "Cost of Debt",
+        peer_col = "peer_cost_of_debt",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
       )
     }
   })
 
   output$kpi_interest_coverage_plot <- shiny::renderPlot({
     shiny::req(input$ticker)
-    data <- kpi_data()
+    data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
       plot_financial_ratio(
         data = data,
         ratio_cols = "interest_coverage",
@@ -570,15 +647,19 @@ server <- function(input, output, session) {
         y_format = "turns",
         y_label = "EBIT / Interest",
         ticker = input$ticker,
-        title_suffix = "Interest Coverage"
+        title_suffix = "Interest Coverage",
+        peer_col = "peer_interest_coverage",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
       )
     }
   })
 
   output$kpi_leverage_plot <- shiny::renderPlot({
     shiny::req(input$ticker)
-    data <- kpi_data()
+    data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
       plot_financial_ratio(
         data = data,
         ratio_cols = "debt_to_ebitda",
@@ -587,7 +668,10 @@ server <- function(input, output, session) {
         y_format = "turns",
         y_label = "Debt / EBITDA",
         ticker = input$ticker,
-        title_suffix = "Leverage"
+        title_suffix = "Leverage",
+        peer_col = "peer_debt_to_ebitda",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
       )
     }
   })

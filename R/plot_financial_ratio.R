@@ -10,6 +10,10 @@
 #' @param y_label Label for y-axis
 #' @param ticker Ticker symbol for title
 #' @param title_suffix Optional suffix for title (default: NULL, uses y_label)
+#' @param peer_col Optional column name for peer median line
+#' @param peer_label Label for peer median in legend (default: "Peer Median")
+#' @param peer_color Color for peer median line (default: "gray50")
+#' @param n_peers Number of peers for caption (default: NULL)
 #'
 #' @return A ggplot2 object
 #' @export
@@ -21,14 +25,25 @@ plot_financial_ratio <- function(
     y_format = "percent",
     y_label = NULL,
     ticker = NULL,
-    title_suffix = NULL
+    title_suffix = NULL,
+    peer_col = NULL,
+    peer_label = "Peer Median",
+    peer_color = "gray50",
+    n_peers = NULL
 ) {
-  avpipeline::validate_df_cols(data, c("date", ratio_cols))
+  required_cols <- c("date", ratio_cols)
+  if (!is.null(peer_col)) {
+    required_cols <- c(required_cols, peer_col)
+  }
+  avpipeline::validate_df_cols(data, required_cols)
   avpipeline::validate_non_empty(data, "data")
 
   if (length(ratio_cols) != length(labels) || length(ratio_cols) != length(colors)) {
     stop("ratio_cols, labels, and colors must have the same length")
   }
+
+  # Check if peer median should be shown
+  has_peer <- !is.null(peer_col) && peer_col %in% names(data)
 
   # Build title
   title <- NULL
@@ -37,9 +52,15 @@ plot_financial_ratio <- function(
     title <- if (!is.null(suffix)) paste0(ticker, ": ", suffix) else ticker
   }
 
-  # Get last row for callouts
+  # Build caption with peer count
 
-last_row <- data %>%
+  caption <- NULL
+  if (has_peer && !is.null(n_peers)) {
+    caption <- paste0(peer_label, " (n=", n_peers, ")")
+  }
+
+  # Get last row for callouts
+  last_row <- data %>%
     dplyr::filter(date == max(date)) %>%
     dplyr::slice(1)
 
@@ -47,8 +68,11 @@ last_row <- data %>%
   date_range <- range(data$date)
   date_buffer <- as.numeric(diff(date_range)) * 0.08
 
-  # Build color mapping
+  # Build color mapping (include peer if present)
   color_values <- stats::setNames(colors, labels)
+  if (has_peer) {
+    color_values <- c(color_values, stats::setNames(peer_color, peer_label))
+  }
 
   # Line widths: first line thicker if multiple, otherwise all same
   line_widths <- if (length(ratio_cols) > 1) {
@@ -59,6 +83,16 @@ last_row <- data %>%
 
   p <- data %>%
     ggplot2::ggplot(ggplot2::aes(x = date))
+
+  # Add peer median line first (bottom layer, thinner)
+  if (has_peer) {
+    p <- p +
+      ggplot2::geom_line(
+        ggplot2::aes(y = .data[[peer_col]], color = peer_label),
+        linewidth = 0.5,
+        linetype = "dashed"
+      )
+  }
 
   # Add lines and callouts for each ratio
   for (i in seq_along(ratio_cols)) {
@@ -104,6 +138,35 @@ last_row <- data %>%
     }
   }
 
+  # Add peer median callout
+  if (has_peer) {
+    peer_last_value <- last_row[[peer_col]]
+    if (!is.na(peer_last_value)) {
+      peer_label_text <- switch(
+        y_format,
+        percent = sprintf("%.1f%%", peer_last_value * 100),
+        turns = sprintf("%.1fx", peer_last_value),
+        sprintf("%.2f", peer_last_value)
+      )
+
+      p <- p +
+        ggplot2::geom_point(
+          data = last_row,
+          ggplot2::aes(y = .data[[peer_col]]),
+          color = peer_color,
+          size = 2
+        ) +
+        ggplot2::geom_text(
+          data = last_row,
+          ggplot2::aes(y = .data[[peer_col]]),
+          label = peer_label_text,
+          color = peer_color,
+          hjust = -0.2,
+          size = 2.5
+        )
+    }
+  }
+
   # Y-axis formatting
   y_scale <- switch(
     y_format,
@@ -124,6 +187,7 @@ last_row <- data %>%
       title = title,
       x = NULL,
       y = y_label,
-      color = NULL
+      color = NULL,
+      caption = caption
     )
 }
