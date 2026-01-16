@@ -148,6 +148,15 @@ render_fundamentals_report <- function(
   # Prepare KPI data for financial ratios
   kpi_data <- prepare_kpi_data(fundamentals)
 
+  # Prepare valuation multiples data (daily frequency)
+  valuation_data <- prepare_valuation_multiples_data(
+    ticker = ticker,
+    price_data = price_data,
+    ttm_data = artifacts$ttm_data,
+    start_date = start_date,
+    end_date = end_date
+  )
+
   template_path <- system.file(
     "templates", "fundamentals_report.Rmd",
     package = "msdataviz"
@@ -185,7 +194,8 @@ render_fundamentals_report <- function(
       roic_labels = roic_labels,
       roe_data = roe_result$data,
       roe_labels = roe_labels,
-      kpi_data = kpi_data
+      kpi_data = kpi_data,
+      valuation_data = valuation_data
     ),
     quiet = TRUE
   )

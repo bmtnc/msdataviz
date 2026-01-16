@@ -20,6 +20,7 @@ params:
   roe_data: NULL
   roe_labels: NULL
   kpi_data: NULL
+  valuation_data: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -594,6 +595,161 @@ if (!is.null(params$roe_data) && nrow(params$roe_data) > 0) {
     multiplier_label = params$roe_labels$multiplier_label,
     title_suffix = params$roe_labels$title_suffix,
     roa_label = params$roe_labels$roa_label
+  )
+}
+```
+
+## Valuations {.tabset}
+
+### P/S
+
+```{r val-ps, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "price_to_sales",
+    labels = "P/S",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "Price / Revenue",
+    ticker = params$ticker,
+    title_suffix = "Price to Sales"
+  )
+}
+```
+
+### P/B
+
+```{r val-pb, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "price_to_book",
+    labels = "P/B",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "Price / Book Value",
+    ticker = params$ticker,
+    title_suffix = "Price to Book"
+  )
+}
+```
+
+### P/Gross Profit
+
+```{r val-pgp, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "price_to_gross_profit",
+    labels = "P/GP",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "Price / Gross Profit",
+    ticker = params$ticker,
+    title_suffix = "Price to Gross Profit"
+  )
+}
+```
+
+### P/EBIT
+
+```{r val-pebit, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "price_to_ebit",
+    labels = "P/EBIT",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "Price / EBIT",
+    ticker = params$ticker,
+    title_suffix = "Price to EBIT"
+  )
+}
+```
+
+### P/E
+
+```{r val-pe, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "price_to_earnings",
+    labels = "P/E",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "Price / Earnings",
+    ticker = params$ticker,
+    title_suffix = "Price to Earnings"
+  )
+}
+```
+
+### P/FCF
+
+```{r val-pfcf, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "price_to_fcf",
+    labels = "P/FCF",
+    colors = "steelblue",
+    y_format = "turns",
+    y_label = "Price / FCF",
+    ticker = params$ticker,
+    title_suffix = "Price to Free Cash Flow"
+  )
+}
+```
+
+### EV/EBITDA
+
+```{r val-ev-ebitda, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "ev_to_ebitda",
+    labels = "EV/EBITDA",
+    colors = "navy",
+    y_format = "turns",
+    y_label = "EV / EBITDA",
+    ticker = params$ticker,
+    title_suffix = "EV to EBITDA"
+  )
+}
+```
+
+### EV/NOPAT
+
+```{r val-ev-nopat, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = "ev_to_nopat",
+    labels = "EV/NOPAT",
+    colors = "navy",
+    y_format = "turns",
+    y_label = "EV / NOPAT",
+    ticker = params$ticker,
+    title_suffix = "EV to NOPAT"
+  )
+}
+```
+
+### Shareholder Yield
+
+```{r val-shareholder-yield, fig.width=10, fig.height=6}
+if (!is.null(params$valuation_data) && nrow(params$valuation_data) > 0) {
+  plot_financial_ratio(
+    data = params$valuation_data,
+    ratio_cols = c("shareholder_yield", "dividend_yield", "buyback_yield"),
+    labels = c("Shareholder Yield", "Dividend Yield", "Buyback Yield"),
+    colors = c("navy", "steelblue", "darkgreen"),
+    y_format = "percent",
+    y_label = "Yield",
+    ticker = params$ticker,
+    title_suffix = "Shareholder Yield"
   )
 }
 ```
