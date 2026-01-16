@@ -141,6 +141,22 @@ ui <- shiny::fluidPage(
           )
         ),
 
+        # Valuation Tab
+        shiny::tabPanel(
+          "Valuation",
+          shiny::tabsetPanel(
+            shiny::tabPanel("P/S", shiny::plotOutput("val_ps_plot", height = "500px")),
+            shiny::tabPanel("P/B", shiny::plotOutput("val_pb_plot", height = "500px")),
+            shiny::tabPanel("P/Gross Profit", shiny::plotOutput("val_pgp_plot", height = "500px")),
+            shiny::tabPanel("P/EBIT", shiny::plotOutput("val_pebit_plot", height = "500px")),
+            shiny::tabPanel("P/E", shiny::plotOutput("val_pe_plot", height = "500px")),
+            shiny::tabPanel("P/FCF", shiny::plotOutput("val_pfcf_plot", height = "500px")),
+            shiny::tabPanel("EV/EBITDA", shiny::plotOutput("val_ev_ebitda_plot", height = "500px")),
+            shiny::tabPanel("EV/NOPAT", shiny::plotOutput("val_ev_nopat_plot", height = "500px")),
+            shiny::tabPanel("Shareholder Yield", shiny::plotOutput("val_yield_plot", height = "500px"))
+          )
+        ),
+
         # DuPont Tab
         shiny::tabPanel(
           "DuPont",
@@ -261,6 +277,72 @@ server <- function(input, output, session) {
     shiny::req(kpi_data(), peer_medians())
     kpi_data() %>%
       dplyr::left_join(peer_medians(), by = "calendar_quarter_ending")
+  })
+
+  # === Valuation Data ===
+
+  # Reactive: Valuation data for ticker (daily frequency)
+  valuation_data <- shiny::reactive({
+    shiny::req(input$ticker)
+    prepare_valuation_multiples_data(
+      ticker = input$ticker,
+      price_data = artifacts$price_data,
+      ttm_data = artifacts$ttm_data,
+      start_date = as.Date("2014-12-31")
+    )
+  })
+
+  # Reactive: Universe valuations (all tickers, quarterly, computed once)
+  universe_valuations <- shiny::reactive({
+    prepare_universe_valuations(
+      artifacts$ttm_data,
+      artifacts$price_data,
+      as.Date("2014-12-31")
+    )
+  })
+
+  # Reactive: Valuation peer medians based on selected peer universe
+  valuation_peer_medians <- shiny::reactive({
+    shiny::req(input$ticker, input$peer_universe)
+
+    data <- universe_valuations()
+
+    # Filter to peer group (unless "market" which uses all tickers)
+    if (input$peer_universe != "market") {
+      info <- selected_info()
+      peer_group <- info[[input$peer_universe]]
+      data <- data %>%
+        dplyr::filter(.data[[input$peer_universe]] == peer_group)
+    }
+
+    # Calculate medians by calendar quarter
+    data %>%
+      dplyr::group_by(calendar_quarter_ending) %>%
+      dplyr::summarize(
+        peer_price_to_sales = median(price_to_sales, na.rm = TRUE),
+        peer_price_to_book = median(price_to_book, na.rm = TRUE),
+        peer_price_to_gross_profit = median(price_to_gross_profit, na.rm = TRUE),
+        peer_price_to_ebit = median(price_to_ebit, na.rm = TRUE),
+        peer_price_to_earnings = median(price_to_earnings, na.rm = TRUE),
+        peer_price_to_fcf = median(price_to_fcf, na.rm = TRUE),
+        peer_ev_to_ebitda = median(ev_to_ebitda, na.rm = TRUE),
+        peer_ev_to_nopat = median(ev_to_nopat, na.rm = TRUE),
+        peer_dividend_yield = median(dividend_yield, na.rm = TRUE),
+        peer_buyback_yield = median(buyback_yield, na.rm = TRUE),
+        peer_shareholder_yield = median(shareholder_yield, na.rm = TRUE),
+        n_peers = dplyr::n_distinct(ticker),
+        .groups = "drop"
+      )
+  })
+
+  # Reactive: Valuation data with peer medians joined
+  # Note: ticker data is daily, peer medians are quarterly (stepped line)
+  valuation_data_with_peers <- shiny::reactive({
+    shiny::req(valuation_data(), valuation_peer_medians())
+    val_data <- valuation_data() %>%
+      dplyr::mutate(calendar_quarter_ending = lubridate::ceiling_date(date, "quarter") - 1)
+    val_data %>%
+      dplyr::left_join(valuation_peer_medians(), by = "calendar_quarter_ending")
   })
 
   # Helper: safe bar plot
@@ -670,6 +752,197 @@ server <- function(input, output, session) {
         ticker = input$ticker,
         title_suffix = "Leverage",
         peer_col = "peer_debt_to_ebitda",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  # === Valuation Charts ===
+
+  output$val_ps_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "price_to_sales",
+        labels = "P/S",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "Price / Revenue",
+        ticker = input$ticker,
+        title_suffix = "Price to Sales",
+        peer_col = "peer_price_to_sales",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_pb_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "price_to_book",
+        labels = "P/B",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "Price / Book Value",
+        ticker = input$ticker,
+        title_suffix = "Price to Book",
+        peer_col = "peer_price_to_book",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_pgp_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "price_to_gross_profit",
+        labels = "P/GP",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "Price / Gross Profit",
+        ticker = input$ticker,
+        title_suffix = "Price to Gross Profit",
+        peer_col = "peer_price_to_gross_profit",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_pebit_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "price_to_ebit",
+        labels = "P/EBIT",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "Price / EBIT",
+        ticker = input$ticker,
+        title_suffix = "Price to EBIT",
+        peer_col = "peer_price_to_ebit",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_pe_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "price_to_earnings",
+        labels = "P/E",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "Price / Earnings",
+        ticker = input$ticker,
+        title_suffix = "Price to Earnings",
+        peer_col = "peer_price_to_earnings",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_pfcf_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "price_to_fcf",
+        labels = "P/FCF",
+        colors = "steelblue",
+        y_format = "turns",
+        y_label = "Price / FCF",
+        ticker = input$ticker,
+        title_suffix = "Price to Free Cash Flow",
+        peer_col = "peer_price_to_fcf",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_ev_ebitda_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "ev_to_ebitda",
+        labels = "EV/EBITDA",
+        colors = "navy",
+        y_format = "turns",
+        y_label = "EV / EBITDA",
+        ticker = input$ticker,
+        title_suffix = "EV to EBITDA",
+        peer_col = "peer_ev_to_ebitda",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_ev_nopat_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "ev_to_nopat",
+        labels = "EV/NOPAT",
+        colors = "navy",
+        y_format = "turns",
+        y_label = "EV / NOPAT",
+        ticker = input$ticker,
+        title_suffix = "EV to NOPAT",
+        peer_col = "peer_ev_to_nopat",
+        peer_label = peer_label,
+        n_peers = data$n_peers[1]
+      )
+    }
+  })
+
+  output$val_yield_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    data <- valuation_data_with_peers()
+    if (!is.null(data) && nrow(data) > 0) {
+      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      plot_financial_ratio(
+        data = data,
+        ratio_cols = "shareholder_yield",
+        labels = "Shareholder Yield",
+        colors = "navy",
+        y_format = "percent",
+        y_label = "(Dividends + Buybacks) / Price",
+        ticker = input$ticker,
+        title_suffix = "Shareholder Yield",
+        peer_col = "peer_shareholder_yield",
         peer_label = peer_label,
         n_peers = data$n_peers[1]
       )
