@@ -124,10 +124,35 @@ plot_drawdown <- function(
     NULL
   }
 
+  # Get last row for callout
+  last_row <- plot_data %>%
+    dplyr::filter(date == max(date)) %>%
+    dplyr::slice(1)
+
+  # Calculate x-axis buffer for callout label
+  date_range <- range(plot_data$date)
+  date_buffer <- as.numeric(diff(date_range)) * 0.08
+
   p <- plot_data %>%
     ggplot2::ggplot(ggplot2::aes(x = date, y = drawdown)) +
     ggplot2::geom_area(fill = "#4C5760", alpha = 0.5) +
-    ggplot2::geom_line(color = "#4C5760", linewidth = 0.5)
+    ggplot2::geom_line(color = "#4C5760", linewidth = 0.5) +
+    ggplot2::geom_point(
+      data = last_row,
+      ggplot2::aes(y = drawdown),
+      color = "#4C5760",
+      size = 3
+    ) +
+    ggplot2::geom_text(
+      data = last_row,
+      ggplot2::aes(
+        y = drawdown,
+        label = scales::percent(drawdown, accuracy = 0.1)
+      ),
+      color = "#4C5760",
+      hjust = -0.2,
+      size = 3.5
+    )
 
   # Add anomaly points if requested
   if (show_anomalies) {
@@ -239,7 +264,11 @@ plot_drawdown <- function(
 
   p +
     ggplot2::scale_y_continuous(labels = scales::percent_format()) +
-    ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+    ggplot2::scale_x_date(
+      date_breaks = "1 year",
+      date_labels = "%Y",
+      limits = c(date_range[1], date_range[2] + date_buffer)
+    ) +
     ggplot2::labs(
       title = NULL,
       x = NULL,

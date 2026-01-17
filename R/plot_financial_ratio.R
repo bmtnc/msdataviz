@@ -188,5 +188,10 @@ plot_financial_ratio <- function(
       y = y_label,
       color = NULL,
       caption = caption
+    ) +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0),
+      plot.subtitle = ggplot2::element_text(hjust = 0),
+      plot.caption = ggplot2::element_text(hjust = 0, size = 8, color = "gray50")
     )
 }

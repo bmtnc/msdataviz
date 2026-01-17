@@ -22,7 +22,12 @@ plot_fundamental_bar <- function(data, ticker, metric_name) {
       x = NULL,
       y = metric_name
     ) +
-    ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+    ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0),
+      plot.subtitle = ggplot2::element_text(hjust = 0),
+      plot.caption = ggplot2::element_text(hjust = 0, size = 8, color = "gray50")
+    )
 
   p <- add_scale_suffix(p, max(abs(data$value), na.rm = TRUE))
 

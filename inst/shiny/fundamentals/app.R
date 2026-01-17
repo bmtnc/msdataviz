@@ -31,10 +31,21 @@ ui <- shiny::fluidPage(
       shiny::selectizeInput(
         inputId = "ticker",
         label = "Search Ticker",
-        choices = NULL,
+        choices = ticker_choices,
         options = list(
           placeholder = "Type to search...",
-          maxOptions = 20
+          maxOptions = 50,
+          # Custom score function to prioritize exact and prefix matches
+          score = I("function(search) {
+            var token = search.toLowerCase();
+            return function(item) {
+              var text = String(item.text || item.value).toLowerCase();
+              if (text === token) return 10000;
+              if (text.indexOf(token) === 0) return 1000 + (100 - text.length);
+              if (text.indexOf(token) > -1) return 100 - text.indexOf(token);
+              return 0;
+            };
+          }")
         )
       ),
       shiny::hr(),
@@ -48,9 +59,20 @@ ui <- shiny::fluidPage(
           "Market" = "market",
           "Sector" = "sector",
           "Subsector" = "subsector",
-          "Industry" = "industry"
+          "Industry" = "industry",
+          "None" = "none"
         ),
         selected = "subsector"
+      ),
+      shiny::hr(),
+      shiny::h5("Date Range"),
+      shiny::numericInput(
+        inputId = "lookback_days",
+        label = "Lookback (days)",
+        value = 3650,
+        min = 365,
+        max = 7300,
+        step = 365
       )
     ),
 
@@ -175,19 +197,33 @@ server <- function(input, output, session) {
   # Set ggplot theme
   set_ggplot_theme()
 
-  # Server-side selectize for better performance with many tickers
-  shiny::updateSelectizeInput(
-    session,
-    "ticker",
-    choices = ticker_choices,
-    server = TRUE
-  )
+  # Reactive: start date based on lookback days
+  start_date <- shiny::reactive({
+    shiny::req(input$lookback_days)
+    Sys.Date() - input$lookback_days
+  })
 
   # Reactive: selected ticker info
   selected_info <- shiny::reactive({
     shiny::req(input$ticker)
     ticker_list %>%
       dplyr::filter(ticker == input$ticker)
+  })
+
+  # Reactive: peer label for charts (dynamic based on actual group name)
+  peer_label <- shiny::reactive({
+    shiny::req(input$peer_universe)
+    if (input$peer_universe == "none") {
+      return(NULL)
+    }
+    if (input$peer_universe == "market") {
+      return("Market Median")
+    }
+    shiny::req(input$ticker)
+    info <- selected_info()
+    group_name <- to_title_case(info[[input$peer_universe]])
+    universe_type <- to_title_case(input$peer_universe)
+    paste0(group_name, " ", universe_type, " Median")
   })
 
   # Company info sidebar
@@ -204,11 +240,11 @@ server <- function(input, output, session) {
 
   # Reactive: prepared fundamentals data
   fundamentals_data <- shiny::reactive({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     prepare_fundamentals_data(
       ticker = input$ticker,
       ttm_data = artifacts$ttm_data,
-      start_date = as.Date("2014-12-31")
+      start_date = start_date()
     )
   })
 
@@ -236,15 +272,21 @@ server <- function(input, output, session) {
     }
   })
 
-  # Reactive: Universe KPIs (all tickers, computed once)
+  # Reactive: Universe KPIs (all tickers, recomputed when date range changes)
   universe_kpis <- shiny::reactive({
-    prepare_universe_kpis(artifacts$ttm_data, as.Date("2014-12-31"))
+    shiny::req(start_date())
+    prepare_universe_kpis(artifacts$ttm_data, start_date())
   })
 
   # Reactive: Peer medians based on selected peer universe
   # Groups by calendar_quarter_ending (not fiscalDateEnding) since companies have different fiscal calendars
   peer_medians <- shiny::reactive({
     shiny::req(input$ticker, input$peer_universe)
+
+    # Return NULL if "none" selected
+    if (input$peer_universe == "none") {
+      return(NULL)
+    }
 
     data <- universe_kpis()
 
@@ -272,38 +314,51 @@ server <- function(input, output, session) {
       )
   })
 
-  # Reactive: KPI data with peer medians joined
+  # Reactive: KPI data with peer medians joined (or just KPI data if "none" selected)
   kpi_data_with_peers <- shiny::reactive({
-    shiny::req(kpi_data(), peer_medians())
-    kpi_data() %>%
-      dplyr::left_join(peer_medians(), by = "calendar_quarter_ending")
+    shiny::req(kpi_data())
+    kpi <- kpi_data()
+
+    peers <- peer_medians()
+    if (is.null(peers)) {
+      return(kpi)
+    }
+
+    kpi %>%
+      dplyr::left_join(peers, by = "calendar_quarter_ending")
   })
 
   # === Valuation Data ===
 
   # Reactive: Valuation data for ticker (daily frequency)
   valuation_data <- shiny::reactive({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     prepare_valuation_multiples_data(
       ticker = input$ticker,
       price_data = artifacts$price_data,
       ttm_data = artifacts$ttm_data,
-      start_date = as.Date("2014-12-31")
+      start_date = start_date()
     )
   })
 
-  # Reactive: Universe valuations (all tickers, daily, computed once)
+  # Reactive: Universe valuations (all tickers, daily, recomputed when date range changes)
   universe_valuations <- shiny::reactive({
+    shiny::req(start_date())
     prepare_universe_valuations_daily(
       artifacts$ttm_data,
       artifacts$price_data,
-      as.Date("2014-12-31")
+      start_date()
     )
   })
 
   # Reactive: Valuation peer medians based on selected peer universe (daily frequency)
   valuation_peer_medians <- shiny::reactive({
     shiny::req(input$ticker, input$peer_universe)
+
+    # Return NULL if "none" selected
+    if (input$peer_universe == "none") {
+      return(NULL)
+    }
 
     data <- universe_valuations()
 
@@ -335,11 +390,18 @@ server <- function(input, output, session) {
       )
   })
 
-  # Reactive: Valuation data with peer medians joined (both at daily frequency)
+  # Reactive: Valuation data with peer medians joined (or just valuation data if "none" selected)
   valuation_data_with_peers <- shiny::reactive({
-    shiny::req(valuation_data(), valuation_peer_medians())
-    valuation_data() %>%
-      dplyr::left_join(valuation_peer_medians(), by = "date")
+    shiny::req(valuation_data())
+    val <- valuation_data()
+
+    peers <- valuation_peer_medians()
+    if (is.null(peers)) {
+      return(val)
+    }
+
+    val %>%
+      dplyr::left_join(peers, by = "date")
   })
 
   # Helper: safe bar plot
@@ -356,12 +418,12 @@ server <- function(input, output, session) {
 
   # TSR Decomposition
   output$tsr_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     ticker <- input$ticker
-    start_date <- as.Date("2014-12-31")
+    sd <- start_date()
 
     price_data <- artifacts$price_data %>%
-      dplyr::filter(ticker == !!ticker, date >= start_date) %>%
+      dplyr::filter(ticker == !!ticker, date >= sd) %>%
       dplyr::select(date, adjusted_close, close, split_coefficient) %>%
       dplyr::filter(
         !is.na(adjusted_close), adjusted_close > 0,
@@ -388,12 +450,12 @@ server <- function(input, output, session) {
 
   # Drawdown
   output$drawdown_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     ticker <- input$ticker
-    start_date <- as.Date("2014-12-31")
+    sd <- start_date()
 
     drawdown_data <- artifacts$price_data %>%
-      dplyr::filter(ticker == !!ticker, date >= start_date) %>%
+      dplyr::filter(ticker == !!ticker, date >= sd) %>%
       dplyr::arrange(date) %>%
       dplyr::select(date, price = adjusted_close) %>%
       dplyr::filter(!is.na(price), price > 0) %>%
@@ -513,10 +575,10 @@ server <- function(input, output, session) {
   # === Per-Share Growth ===
 
   output$ps_revenue_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     data <- prepare_per_share_decomposition_data(
       ttm_with_calcs(), input$ticker, "totalRevenue_ttm",
-      as.Date("2014-12-31")
+      start_date()
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "Revenue")
@@ -524,10 +586,10 @@ server <- function(input, output, session) {
   })
 
   output$ps_gross_profit_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     data <- prepare_per_share_decomposition_data(
       ttm_with_calcs(), input$ticker, "grossProfit_ttm",
-      as.Date("2014-12-31")
+      start_date()
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "Gross Profit")
@@ -535,10 +597,10 @@ server <- function(input, output, session) {
   })
 
   output$ps_ebit_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     data <- prepare_per_share_decomposition_data(
       ttm_with_calcs(), input$ticker, "ebit_ttm",
-      as.Date("2014-12-31")
+      start_date()
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "EBIT")
@@ -546,10 +608,10 @@ server <- function(input, output, session) {
   })
 
   output$ps_ebitda_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     data <- prepare_per_share_decomposition_data(
       ttm_with_calcs(), input$ticker, "ebitda_ttm",
-      as.Date("2014-12-31")
+      start_date()
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "EBITDA")
@@ -557,10 +619,10 @@ server <- function(input, output, session) {
   })
 
   output$ps_nopat_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     data <- prepare_per_share_decomposition_data(
       ttm_with_calcs(), input$ticker, "nopat",
-      as.Date("2014-12-31")
+      start_date()
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "NOPAT")
@@ -568,10 +630,10 @@ server <- function(input, output, session) {
   })
 
   output$ps_fcf_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     data <- prepare_per_share_decomposition_data(
       ttm_with_calcs(), input$ticker, "fcf",
-      as.Date("2014-12-31")
+      start_date()
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "FCF")
@@ -579,10 +641,10 @@ server <- function(input, output, session) {
   })
 
   output$ps_bv_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     data <- prepare_per_share_decomposition_data(
       ttm_with_calcs(), input$ticker, "totalShareholderEquity",
-      as.Date("2014-12-31")
+      start_date()
     )
     if (!is.null(data)) {
       plot_share_count_decomposition(data, input$ticker, "Book Value")
@@ -612,7 +674,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "roic",
@@ -622,9 +684,9 @@ server <- function(input, output, session) {
         y_label = "NOPAT / IC",
         ticker = input$ticker,
         title_suffix = "ROIC",
-        peer_col = "peer_roic",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_roic" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -633,7 +695,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "groic",
@@ -643,9 +705,9 @@ server <- function(input, output, session) {
         y_label = "Gross Profit / IC",
         ticker = input$ticker,
         title_suffix = "GROIC",
-        peer_col = "peer_groic",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_groic" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -654,7 +716,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "roe",
@@ -664,9 +726,9 @@ server <- function(input, output, session) {
         y_label = "Net Income / Equity",
         ticker = input$ticker,
         title_suffix = "ROE",
-        peer_col = "peer_roe",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_roe" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -675,7 +737,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "fcf_conversion",
@@ -685,9 +747,9 @@ server <- function(input, output, session) {
         y_label = "FCF / NOPAT",
         ticker = input$ticker,
         title_suffix = "FCF Conversion",
-        peer_col = "peer_fcf_conversion",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_fcf_conversion" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -696,7 +758,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "cost_of_debt",
@@ -706,9 +768,9 @@ server <- function(input, output, session) {
         y_label = "Interest / Avg Debt",
         ticker = input$ticker,
         title_suffix = "Cost of Debt",
-        peer_col = "peer_cost_of_debt",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_cost_of_debt" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -717,7 +779,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "interest_coverage",
@@ -727,9 +789,9 @@ server <- function(input, output, session) {
         y_label = "EBIT / Interest",
         ticker = input$ticker,
         title_suffix = "Interest Coverage",
-        peer_col = "peer_interest_coverage",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_interest_coverage" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -738,7 +800,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- kpi_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "debt_to_ebitda",
@@ -748,9 +810,9 @@ server <- function(input, output, session) {
         y_label = "Debt / EBITDA",
         ticker = input$ticker,
         title_suffix = "Leverage",
-        peer_col = "peer_debt_to_ebitda",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_debt_to_ebitda" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -761,7 +823,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "price_to_sales",
@@ -771,9 +833,9 @@ server <- function(input, output, session) {
         y_label = "Price / Revenue",
         ticker = input$ticker,
         title_suffix = "Price to Sales",
-        peer_col = "peer_price_to_sales",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_price_to_sales" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -782,7 +844,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "price_to_book",
@@ -792,9 +854,9 @@ server <- function(input, output, session) {
         y_label = "Price / Book Value",
         ticker = input$ticker,
         title_suffix = "Price to Book",
-        peer_col = "peer_price_to_book",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_price_to_book" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -803,7 +865,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "price_to_gross_profit",
@@ -813,9 +875,9 @@ server <- function(input, output, session) {
         y_label = "Price / Gross Profit",
         ticker = input$ticker,
         title_suffix = "Price to Gross Profit",
-        peer_col = "peer_price_to_gross_profit",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_price_to_gross_profit" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -824,7 +886,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "price_to_ebit",
@@ -834,9 +896,9 @@ server <- function(input, output, session) {
         y_label = "Price / EBIT",
         ticker = input$ticker,
         title_suffix = "Price to EBIT",
-        peer_col = "peer_price_to_ebit",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_price_to_ebit" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -845,7 +907,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "price_to_earnings",
@@ -855,9 +917,9 @@ server <- function(input, output, session) {
         y_label = "Price / Earnings",
         ticker = input$ticker,
         title_suffix = "Price to Earnings",
-        peer_col = "peer_price_to_earnings",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_price_to_earnings" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -866,7 +928,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "price_to_fcf",
@@ -876,9 +938,9 @@ server <- function(input, output, session) {
         y_label = "Price / FCF",
         ticker = input$ticker,
         title_suffix = "Price to Free Cash Flow",
-        peer_col = "peer_price_to_fcf",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_price_to_fcf" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -887,7 +949,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "ev_to_ebitda",
@@ -897,9 +959,9 @@ server <- function(input, output, session) {
         y_label = "EV / EBITDA",
         ticker = input$ticker,
         title_suffix = "EV to EBITDA",
-        peer_col = "peer_ev_to_ebitda",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_ev_to_ebitda" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -908,7 +970,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "ev_to_nopat",
@@ -918,9 +980,9 @@ server <- function(input, output, session) {
         y_label = "EV / NOPAT",
         ticker = input$ticker,
         title_suffix = "EV to NOPAT",
-        peer_col = "peer_ev_to_nopat",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_ev_to_nopat" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -929,7 +991,7 @@ server <- function(input, output, session) {
     shiny::req(input$ticker)
     data <- valuation_data_with_peers()
     if (!is.null(data) && nrow(data) > 0) {
-      peer_label <- paste0(to_title_case(input$peer_universe), " Median")
+      pl <- peer_label()
       plot_financial_ratio(
         data = data,
         ratio_cols = "shareholder_yield",
@@ -939,9 +1001,9 @@ server <- function(input, output, session) {
         y_label = "(Dividends + Buybacks) / Price",
         ticker = input$ticker,
         title_suffix = "Shareholder Yield",
-        peer_col = "peer_shareholder_yield",
-        peer_label = peer_label,
-        n_peers = data$n_peers[1]
+        peer_col = if (!is.null(pl)) "peer_shareholder_yield" else NULL,
+        peer_label = pl,
+        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
       )
     }
   })
@@ -949,10 +1011,10 @@ server <- function(input, output, session) {
   # === Return Decomposition ===
 
   output$roic_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     result <- prepare_dupont_over_time_data(
       ticker = input$ticker,
-      start_date = as.Date("2014-12-31"),
+      start_date = start_date(),
       numerator = "nopat",
       denominator = "invested_capital",
       artifacts = artifacts
@@ -974,10 +1036,10 @@ server <- function(input, output, session) {
   })
 
   output$roe_plot <- shiny::renderPlot({
-    shiny::req(input$ticker)
+    shiny::req(input$ticker, start_date())
     result <- prepare_dupont_over_time_data(
       ticker = input$ticker,
-      start_date = as.Date("2014-12-31"),
+      start_date = start_date(),
       numerator = "netIncome",
       denominator = "equity",
       artifacts = artifacts
