@@ -1,0 +1,18 @@
+services:
+  shiny:
+    build: .
+    container_name: msdataviz-shiny
+    ports:
+      - "3838:3838"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - S3_BUCKET=${S3_BUCKET:-avpipeline-artifacts-prod}
+    volumes:
+      # Persist artifact cache across container restarts
+      - artifact-cache:/root/.cache/msdataviz
+    restart: unless-stopped
+
+volumes:
+  artifact-cache:

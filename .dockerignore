@@ -1,0 +1,38 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.Rproj.user/
+*.Rproj
+.vscode/
+.idea/
+
+# renv library (rebuilt in container)
+renv/library/
+renv/staging/
+renv/cache/
+
+# Tests (not needed in production)
+tests/
+testthat/
+
+# Documentation/plots
+docs/
+plots/
+*.html
+*.pdf
+
+# Development files
+.Rhistory
+.RData
+.Ruserdata
+
+# Claude
+.claude/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

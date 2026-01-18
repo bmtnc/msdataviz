@@ -4,9 +4,13 @@
 \alias{run_fundamentals_app}
 \title{Run Fundamentals Explorer Shiny App}
 \usage{
-run_fundamentals_app(...)
+run_fundamentals_app(host = "127.0.0.1", port = 3838, ...)
 }
 \arguments{
+\item{host}{Host address to bind to. Use "0.0.0.0" for Docker/external access.}
+
+\item{port}{Port number for the Shiny app.}
+
 \item{...}{Additional arguments passed to shiny::runApp}
 }
 \value{
