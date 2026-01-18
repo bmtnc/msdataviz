@@ -21,8 +21,110 @@ ticker_list <- artifacts$ttm_data %>%
 
 ticker_choices <- stats::setNames(ticker_list$ticker, ticker_list$ticker)
 
+# Helper: wrap plotOutput with spinner
+with_spinner <- function(plot_output) {
+
+  shinycssloaders::withSpinner(plot_output, color = "#7C90A0")
+}
+
 # UI
 ui <- shiny::fluidPage(
+  class = "theme-slate",
+  shiny::tags$head(
+    shiny::tags$style(shiny::HTML("
+      /* Slate theme */
+      body { background-color: #f8f9fa; }
+
+      .well {
+        background-color: #4E5166;
+        border: none;
+        border-radius: 8px;
+        color: white;
+      }
+      .well label { color: white; }
+      .well h4, .well h5 { color: #B5AA9D; font-weight: 600; }
+      .well p { color: rgba(255, 255, 255, 0.9); }
+      .well strong { color: #B9B7A7; }
+      .well hr { border-color: rgba(255, 255, 255, 0.2); }
+
+      .well .selectize-input {
+        background-color: white;
+        border: 2px solid #7C90A0;
+        border-radius: 4px;
+      }
+      .well .selectize-input.focus {
+        border-color: #B5AA9D;
+        box-shadow: 0 0 0 2px rgba(124, 144, 160, 0.2);
+      }
+      .well .selectize-dropdown {
+        border: 2px solid #7C90A0;
+        border-top: none;
+      }
+      .well .selectize-dropdown .active {
+        background-color: #7C90A0;
+        color: white;
+      }
+
+      .well .radio label { color: rgba(255, 255, 255, 0.9); }
+      .well input[type='radio'] { accent-color: #7C90A0; }
+
+      .well input[type='number'] {
+        background-color: white;
+        border: 2px solid #7C90A0;
+        border-radius: 4px;
+        color: #4E5166;
+      }
+      .well input[type='number']:focus {
+        border-color: #B5AA9D;
+        box-shadow: 0 0 0 2px rgba(124, 144, 160, 0.2);
+        outline: none;
+      }
+
+      .container-fluid > h2 {
+        color: #4E5166;
+        font-weight: 600;
+        padding: 15px 0;
+        border-bottom: 3px solid #7C90A0;
+        margin-bottom: 20px;
+      }
+
+      .nav-tabs { border-bottom: 2px solid #B9B7A7; }
+      .nav-tabs > li > a {
+        color: #4E5166;
+        border: none;
+        border-radius: 4px 4px 0 0;
+        margin-right: 2px;
+        transition: all 0.2s ease;
+      }
+      .nav-tabs > li > a:hover {
+        background-color: #B9B7A7;
+        border: none;
+        color: #4E5166;
+      }
+      .nav-tabs > li.active > a,
+      .nav-tabs > li.active > a:hover,
+      .nav-tabs > li.active > a:focus {
+        background-color: #7C90A0;
+        color: white;
+        border: none;
+        font-weight: 500;
+      }
+
+      .tab-content .nav-tabs { border-bottom: 1px solid #B9B7A7; }
+      .tab-content .nav-tabs > li > a { font-size: 0.9em; padding: 8px 12px; }
+      .tab-content .nav-tabs > li.active > a { background-color: #747274; }
+
+      .tab-pane h3 {
+        color: #4E5166;
+        font-weight: 600;
+        margin-top: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #B9B7A7;
+      }
+      .tab-pane hr { border-color: #B9B7A7; margin: 30px 0; }
+    "))
+  ),
+
   shiny::titlePanel("Fundamentals Explorer"),
 
   shiny::sidebarLayout(
@@ -85,10 +187,10 @@ ui <- shiny::fluidPage(
         shiny::tabPanel(
           "Price",
           shiny::h3("TSR Decomposition"),
-          shiny::plotOutput("tsr_plot", height = "500px"),
+          with_spinner(shiny::plotOutput("tsr_plot", height = "500px")),
           shiny::hr(),
           shiny::h3("Drawdown"),
-          shiny::plotOutput("drawdown_plot", height = "400px")
+          with_spinner(shiny::plotOutput("drawdown_plot", height = "400px"))
         ),
 
         # Financials Tab
@@ -99,65 +201,65 @@ ui <- shiny::fluidPage(
             shiny::tabPanel(
               "Income Statement",
               shiny::tabsetPanel(
-                shiny::tabPanel("Revenue", shiny::plotOutput("revenue_plot", height = "500px")),
-                shiny::tabPanel("Gross Profit", shiny::plotOutput("gross_profit_plot", height = "500px")),
-                shiny::tabPanel("EBIT", shiny::plotOutput("ebit_plot", height = "500px")),
-                shiny::tabPanel("EBITDA", shiny::plotOutput("ebitda_plot", height = "500px")),
-                shiny::tabPanel("NOPAT", shiny::plotOutput("nopat_plot", height = "500px")),
-                shiny::tabPanel("Interest Income", shiny::plotOutput("interest_income_plot", height = "500px")),
-                shiny::tabPanel("Interest Expense", shiny::plotOutput("interest_expense_plot", height = "500px")),
-                shiny::tabPanel("Net Interest Income", shiny::plotOutput("net_interest_income_plot", height = "500px")),
-                shiny::tabPanel("Net Income", shiny::plotOutput("net_income_plot", height = "500px"))
+                shiny::tabPanel("Revenue", with_spinner(shiny::plotOutput("revenue_plot", height = "500px"))),
+                shiny::tabPanel("Gross Profit", with_spinner(shiny::plotOutput("gross_profit_plot", height = "500px"))),
+                shiny::tabPanel("EBIT", with_spinner(shiny::plotOutput("ebit_plot", height = "500px"))),
+                shiny::tabPanel("EBITDA", with_spinner(shiny::plotOutput("ebitda_plot", height = "500px"))),
+                shiny::tabPanel("NOPAT", with_spinner(shiny::plotOutput("nopat_plot", height = "500px"))),
+                shiny::tabPanel("Interest Income", with_spinner(shiny::plotOutput("interest_income_plot", height = "500px"))),
+                shiny::tabPanel("Interest Expense", with_spinner(shiny::plotOutput("interest_expense_plot", height = "500px"))),
+                shiny::tabPanel("Net Interest Income", with_spinner(shiny::plotOutput("net_interest_income_plot", height = "500px"))),
+                shiny::tabPanel("Net Income", with_spinner(shiny::plotOutput("net_income_plot", height = "500px")))
               )
             ),
             # Cash Flow
             shiny::tabPanel(
               "Cash Flow",
               shiny::tabsetPanel(
-                shiny::tabPanel("Operating Cash Flow", shiny::plotOutput("ocf_plot", height = "500px")),
-                shiny::tabPanel("Free Cash Flow", shiny::plotOutput("fcf_plot", height = "500px")),
-                shiny::tabPanel("CapEx", shiny::plotOutput("capex_plot", height = "500px")),
-                shiny::tabPanel("Dividends", shiny::plotOutput("dividends_plot", height = "500px")),
-                shiny::tabPanel("Buybacks", shiny::plotOutput("buybacks_plot", height = "500px")),
-                shiny::tabPanel("Total Capital Returned", shiny::plotOutput("total_capital_returned_plot", height = "500px"))
+                shiny::tabPanel("Operating Cash Flow", with_spinner(shiny::plotOutput("ocf_plot", height = "500px"))),
+                shiny::tabPanel("Free Cash Flow", with_spinner(shiny::plotOutput("fcf_plot", height = "500px"))),
+                shiny::tabPanel("CapEx", with_spinner(shiny::plotOutput("capex_plot", height = "500px"))),
+                shiny::tabPanel("Dividends", with_spinner(shiny::plotOutput("dividends_plot", height = "500px"))),
+                shiny::tabPanel("Buybacks", with_spinner(shiny::plotOutput("buybacks_plot", height = "500px"))),
+                shiny::tabPanel("Total Capital Returned", with_spinner(shiny::plotOutput("total_capital_returned_plot", height = "500px")))
               )
             ),
             # Balance Sheet
             shiny::tabPanel(
               "Balance Sheet",
               shiny::tabsetPanel(
-                shiny::tabPanel("Total Assets", shiny::plotOutput("assets_plot", height = "500px")),
-                shiny::tabPanel("Cash", shiny::plotOutput("cash_plot", height = "500px")),
-                shiny::tabPanel("Total Debt", shiny::plotOutput("debt_plot", height = "500px")),
-                shiny::tabPanel("Shareholder Equity", shiny::plotOutput("equity_plot", height = "500px")),
-                shiny::tabPanel("Shares Outstanding", shiny::plotOutput("shares_plot", height = "500px"))
+                shiny::tabPanel("Total Assets", with_spinner(shiny::plotOutput("assets_plot", height = "500px"))),
+                shiny::tabPanel("Cash", with_spinner(shiny::plotOutput("cash_plot", height = "500px"))),
+                shiny::tabPanel("Total Debt", with_spinner(shiny::plotOutput("debt_plot", height = "500px"))),
+                shiny::tabPanel("Shareholder Equity", with_spinner(shiny::plotOutput("equity_plot", height = "500px"))),
+                shiny::tabPanel("Shares Outstanding", with_spinner(shiny::plotOutput("shares_plot", height = "500px")))
               )
             ),
             # Per-Share Growth
             shiny::tabPanel(
               "Per-Share Growth",
               shiny::tabsetPanel(
-                shiny::tabPanel("Revenue", shiny::plotOutput("ps_revenue_plot", height = "500px")),
-                shiny::tabPanel("Gross Profit", shiny::plotOutput("ps_gross_profit_plot", height = "500px")),
-                shiny::tabPanel("EBIT", shiny::plotOutput("ps_ebit_plot", height = "500px")),
-                shiny::tabPanel("EBITDA", shiny::plotOutput("ps_ebitda_plot", height = "500px")),
-                shiny::tabPanel("NOPAT", shiny::plotOutput("ps_nopat_plot", height = "500px")),
-                shiny::tabPanel("FCF", shiny::plotOutput("ps_fcf_plot", height = "500px")),
-                shiny::tabPanel("Book Value", shiny::plotOutput("ps_bv_plot", height = "500px"))
+                shiny::tabPanel("Revenue", with_spinner(shiny::plotOutput("ps_revenue_plot", height = "500px"))),
+                shiny::tabPanel("Gross Profit", with_spinner(shiny::plotOutput("ps_gross_profit_plot", height = "500px"))),
+                shiny::tabPanel("EBIT", with_spinner(shiny::plotOutput("ps_ebit_plot", height = "500px"))),
+                shiny::tabPanel("EBITDA", with_spinner(shiny::plotOutput("ps_ebitda_plot", height = "500px"))),
+                shiny::tabPanel("NOPAT", with_spinner(shiny::plotOutput("ps_nopat_plot", height = "500px"))),
+                shiny::tabPanel("FCF", with_spinner(shiny::plotOutput("ps_fcf_plot", height = "500px"))),
+                shiny::tabPanel("Book Value", with_spinner(shiny::plotOutput("ps_bv_plot", height = "500px")))
               )
             ),
             # KPIs
             shiny::tabPanel(
               "KPIs",
               shiny::tabsetPanel(
-                shiny::tabPanel("Margins", shiny::plotOutput("kpi_margins_plot", height = "500px")),
-                shiny::tabPanel("ROIC", shiny::plotOutput("kpi_roic_plot", height = "500px")),
-                shiny::tabPanel("GROIC", shiny::plotOutput("kpi_groic_plot", height = "500px")),
-                shiny::tabPanel("ROE", shiny::plotOutput("kpi_roe_plot", height = "500px")),
-                shiny::tabPanel("FCF Conversion", shiny::plotOutput("kpi_fcf_conversion_plot", height = "500px")),
-                shiny::tabPanel("Cost of Debt", shiny::plotOutput("kpi_cost_of_debt_plot", height = "500px")),
-                shiny::tabPanel("Interest Coverage", shiny::plotOutput("kpi_interest_coverage_plot", height = "500px")),
-                shiny::tabPanel("Leverage", shiny::plotOutput("kpi_leverage_plot", height = "500px"))
+                shiny::tabPanel("Margins", with_spinner(shiny::plotOutput("kpi_margins_plot", height = "500px"))),
+                shiny::tabPanel("ROIC", with_spinner(shiny::plotOutput("kpi_roic_plot", height = "500px"))),
+                shiny::tabPanel("GROIC", with_spinner(shiny::plotOutput("kpi_groic_plot", height = "500px"))),
+                shiny::tabPanel("ROE", with_spinner(shiny::plotOutput("kpi_roe_plot", height = "500px"))),
+                shiny::tabPanel("FCF Conversion", with_spinner(shiny::plotOutput("kpi_fcf_conversion_plot", height = "500px"))),
+                shiny::tabPanel("Cost of Debt", with_spinner(shiny::plotOutput("kpi_cost_of_debt_plot", height = "500px"))),
+                shiny::tabPanel("Interest Coverage", with_spinner(shiny::plotOutput("kpi_interest_coverage_plot", height = "500px"))),
+                shiny::tabPanel("Leverage", with_spinner(shiny::plotOutput("kpi_leverage_plot", height = "500px")))
               )
             )
           )
@@ -167,15 +269,15 @@ ui <- shiny::fluidPage(
         shiny::tabPanel(
           "Valuation",
           shiny::tabsetPanel(
-            shiny::tabPanel("P/S", shiny::plotOutput("val_ps_plot", height = "500px")),
-            shiny::tabPanel("P/B", shiny::plotOutput("val_pb_plot", height = "500px")),
-            shiny::tabPanel("P/Gross Profit", shiny::plotOutput("val_pgp_plot", height = "500px")),
-            shiny::tabPanel("P/EBIT", shiny::plotOutput("val_pebit_plot", height = "500px")),
-            shiny::tabPanel("P/E", shiny::plotOutput("val_pe_plot", height = "500px")),
-            shiny::tabPanel("P/FCF", shiny::plotOutput("val_pfcf_plot", height = "500px")),
-            shiny::tabPanel("EV/EBITDA", shiny::plotOutput("val_ev_ebitda_plot", height = "500px")),
-            shiny::tabPanel("EV/NOPAT", shiny::plotOutput("val_ev_nopat_plot", height = "500px")),
-            shiny::tabPanel("Shareholder Yield", shiny::plotOutput("val_yield_plot", height = "500px"))
+            shiny::tabPanel("P/S", with_spinner(shiny::plotOutput("val_ps_plot", height = "500px"))),
+            shiny::tabPanel("P/B", with_spinner(shiny::plotOutput("val_pb_plot", height = "500px"))),
+            shiny::tabPanel("P/Gross Profit", with_spinner(shiny::plotOutput("val_pgp_plot", height = "500px"))),
+            shiny::tabPanel("P/EBIT", with_spinner(shiny::plotOutput("val_pebit_plot", height = "500px"))),
+            shiny::tabPanel("P/E", with_spinner(shiny::plotOutput("val_pe_plot", height = "500px"))),
+            shiny::tabPanel("P/FCF", with_spinner(shiny::plotOutput("val_pfcf_plot", height = "500px"))),
+            shiny::tabPanel("EV/EBITDA", with_spinner(shiny::plotOutput("val_ev_ebitda_plot", height = "500px"))),
+            shiny::tabPanel("EV/NOPAT", with_spinner(shiny::plotOutput("val_ev_nopat_plot", height = "500px"))),
+            shiny::tabPanel("Shareholder Yield", with_spinner(shiny::plotOutput("val_yield_plot", height = "500px")))
           )
         ),
 
@@ -183,8 +285,8 @@ ui <- shiny::fluidPage(
         shiny::tabPanel(
           "DuPont",
           shiny::tabsetPanel(
-            shiny::tabPanel("ROIC", shiny::plotOutput("roic_plot", height = "550px")),
-            shiny::tabPanel("ROE", shiny::plotOutput("roe_plot", height = "550px"))
+            shiny::tabPanel("ROIC", with_spinner(shiny::plotOutput("roic_plot", height = "550px"))),
+            shiny::tabPanel("ROE", with_spinner(shiny::plotOutput("roe_plot", height = "550px")))
           )
         )
       )

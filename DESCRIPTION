@@ -20,6 +20,7 @@ Imports:
     rmarkdown,
     scales,
     shiny,
+    shinycssloaders,
     tibble,
     tidyr
 Remotes:
