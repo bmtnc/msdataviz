@@ -35,6 +35,75 @@ ui <- shiny::fluidPage(
       /* Slate theme */
       body { background-color: #f8f9fa; }
 
+      /* Home page styles */
+      #home-panel {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background-color: #f8f9fa !important;
+        z-index: 100 !important;
+      }
+      .home-search-wrapper {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 500px !important;
+        max-width: 90vw !important;
+        z-index: 101 !important;
+      }
+      .home-search-wrapper .form-group {
+        margin-bottom: 0;
+        width: 100%;
+      }
+      .home-search-wrapper .form-group > div {
+        width: 100%;
+      }
+      .home-search-wrapper .selectize-control {
+        width: 100% !important;
+      }
+      .home-search-wrapper .selectize-input {
+        width: 100% !important;
+        padding: 14px 20px;
+        font-size: 1.1em;
+        border: 2px solid #7C90A0;
+        border-radius: 25px;
+        background-color: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .home-search-wrapper .selectize-input.focus {
+        border-color: #4E5166;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      }
+      /* Hide the dropdown arrow */
+      .home-search-wrapper .selectize-input::after {
+        display: none !important;
+      }
+      .home-search-wrapper .selectize-control.single .selectize-input::after {
+        display: none !important;
+      }
+      /* Style the dropdown as autocomplete suggestions */
+      .home-search-wrapper .selectize-dropdown {
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-top: -2px;
+      }
+      .home-search-wrapper .selectize-dropdown-content {
+        max-height: 300px;
+        padding: 5px 0;
+      }
+      .home-search-wrapper .selectize-dropdown .option {
+        padding: 10px 20px;
+      }
+      .home-search-wrapper .selectize-dropdown .active {
+        background-color: #f5f5f5;
+        color: #4E5166;
+      }
+
       .well {
         background-color: #4E5166;
         border: none;
@@ -125,15 +194,55 @@ ui <- shiny::fluidPage(
     "))
   ),
 
-  shiny::titlePanel("Fundamentals Explorer"),
+  # Hidden ticker input that controls view state (always rendered)
+  shiny::div(
+    style = "display: none;",
+    shiny::textInput("ticker", label = NULL, value = "")
+  ),
 
-  shiny::sidebarLayout(
+  # Home Page View (no ticker selected)
+  shiny::conditionalPanel(
+    condition = "input.ticker === ''",
+    shiny::tags$div(
+      id = "home-panel",
+      shiny::tags$div(
+        class = "home-search-wrapper",
+        shiny::selectizeInput(
+          inputId = "home_ticker",
+          label = NULL,
+          choices = NULL,
+          selected = NULL,
+          options = list(
+            placeholder = "Enter ticker symbol...",
+            maxOptions = 50,
+            score = I("function(search) {
+              var token = search.toLowerCase();
+              return function(item) {
+                if (!item.value) return 0;
+                var text = String(item.text || item.value).toLowerCase();
+                if (text === token) return 10000;
+                if (text.indexOf(token) === 0) return 1000 + (100 - text.length);
+                if (text.indexOf(token) > -1) return 100 - text.indexOf(token);
+                return 0;
+              };
+            }")
+          )
+        )
+      )
+    )
+  ),
+
+  # Dashboard View (ticker selected)
+  shiny::conditionalPanel(
+    condition = "input.ticker !== ''",
+    shiny::sidebarLayout(
     shiny::sidebarPanel(
       width = 2,
       shiny::selectizeInput(
-        inputId = "ticker",
+        inputId = "sidebar_ticker",
         label = "Search Ticker",
         choices = ticker_choices,
+        selected = character(0),
         options = list(
           placeholder = "Type to search...",
           maxOptions = 50,
@@ -292,12 +401,34 @@ ui <- shiny::fluidPage(
       )
     )
   )
+  )  # Close conditionalPanel for dashboard
 )
 
 # Server
 server <- function(input, output, session) {
   # Set ggplot theme
   set_ggplot_theme()
+
+  # Initialize home ticker choices (server-side to start empty)
+  shiny::updateSelectizeInput(
+    session, "home_ticker",
+    choices = ticker_choices,
+    selected = character(0),
+    server = TRUE
+  )
+
+  # Sync home page ticker selection to hidden ticker (controls view state)
+  shiny::observeEvent(input$home_ticker, {
+    shiny::req(input$home_ticker, nzchar(input$home_ticker))
+    shiny::updateTextInput(session, "ticker", value = input$home_ticker)
+    shiny::updateSelectizeInput(session, "sidebar_ticker", selected = input$home_ticker)
+  }, ignoreInit = TRUE)
+
+  # Sync sidebar ticker selection to hidden ticker
+  shiny::observeEvent(input$sidebar_ticker, {
+    shiny::req(input$sidebar_ticker)
+    shiny::updateTextInput(session, "ticker", value = input$sidebar_ticker)
+  }, ignoreInit = TRUE)
 
   # Reactive: start date based on lookback days
   start_date <- shiny::reactive({
