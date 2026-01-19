@@ -29,6 +29,7 @@ with_spinner <- function(plot_output) {
 
 # UI
 ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
   class = "theme-slate",
   shiny::tags$head(
     shiny::tags$style(shiny::HTML("
@@ -191,6 +192,31 @@ ui <- shiny::fluidPage(
         border-bottom: 2px solid #B9B7A7;
       }
       .tab-pane hr { border-color: #B9B7A7; margin: 30px 0; }
+
+      /* Lookback buttons */
+      .lookback-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 10px;
+      }
+      .lookback-buttons .btn {
+        flex: 1;
+        min-width: 40px;
+        padding: 4px 8px;
+        font-size: 0.85em;
+        background-color: #7C90A0;
+        border: none;
+        color: white;
+      }
+      .lookback-buttons .btn:hover {
+        background-color: #5a6d7a;
+      }
+      .lookback-buttons .btn.active {
+        background-color: #B5AA9D;
+        color: #4E5166;
+        font-weight: 600;
+      }
     "))
   ),
 
@@ -277,13 +303,21 @@ ui <- shiny::fluidPage(
       ),
       shiny::hr(),
       shiny::h5("Date Range"),
+      shiny::div(
+        class = "lookback-buttons",
+        shiny::actionButton("lookback_1y", "1Y", class = "btn-sm"),
+        shiny::actionButton("lookback_3y", "3Y", class = "btn-sm"),
+        shiny::actionButton("lookback_5y", "5Y", class = "btn-sm"),
+        shiny::actionButton("lookback_10y", "10Y", class = "btn-sm active"),
+        shiny::actionButton("lookback_si", "SI", class = "btn-sm")
+      ),
       shiny::numericInput(
         inputId = "lookback_days",
-        label = "Lookback (days)",
+        label = "Custom (days)",
         value = 3650,
-        min = 365,
+        min = 30,
         max = 7300,
-        step = 365
+        step = 30
       )
     ),
 
@@ -343,34 +377,36 @@ ui <- shiny::fluidPage(
                 shiny::tabPanel("Shareholder Equity", with_spinner(shiny::plotOutput("equity_plot", height = "500px"))),
                 shiny::tabPanel("Shares Outstanding", with_spinner(shiny::plotOutput("shares_plot", height = "500px")))
               )
-            ),
-            # Per-Share Growth
-            shiny::tabPanel(
-              "Per-Share Growth",
-              shiny::tabsetPanel(
-                shiny::tabPanel("Revenue", with_spinner(shiny::plotOutput("ps_revenue_plot", height = "500px"))),
-                shiny::tabPanel("Gross Profit", with_spinner(shiny::plotOutput("ps_gross_profit_plot", height = "500px"))),
-                shiny::tabPanel("EBIT", with_spinner(shiny::plotOutput("ps_ebit_plot", height = "500px"))),
-                shiny::tabPanel("EBITDA", with_spinner(shiny::plotOutput("ps_ebitda_plot", height = "500px"))),
-                shiny::tabPanel("NOPAT", with_spinner(shiny::plotOutput("ps_nopat_plot", height = "500px"))),
-                shiny::tabPanel("FCF", with_spinner(shiny::plotOutput("ps_fcf_plot", height = "500px"))),
-                shiny::tabPanel("Book Value", with_spinner(shiny::plotOutput("ps_bv_plot", height = "500px")))
-              )
-            ),
-            # KPIs
-            shiny::tabPanel(
-              "KPIs",
-              shiny::tabsetPanel(
-                shiny::tabPanel("Margins", with_spinner(shiny::plotOutput("kpi_margins_plot", height = "500px"))),
-                shiny::tabPanel("ROIC", with_spinner(shiny::plotOutput("kpi_roic_plot", height = "500px"))),
-                shiny::tabPanel("GROIC", with_spinner(shiny::plotOutput("kpi_groic_plot", height = "500px"))),
-                shiny::tabPanel("ROE", with_spinner(shiny::plotOutput("kpi_roe_plot", height = "500px"))),
-                shiny::tabPanel("FCF Conversion", with_spinner(shiny::plotOutput("kpi_fcf_conversion_plot", height = "500px"))),
-                shiny::tabPanel("Cost of Debt", with_spinner(shiny::plotOutput("kpi_cost_of_debt_plot", height = "500px"))),
-                shiny::tabPanel("Interest Coverage", with_spinner(shiny::plotOutput("kpi_interest_coverage_plot", height = "500px"))),
-                shiny::tabPanel("Leverage", with_spinner(shiny::plotOutput("kpi_leverage_plot", height = "500px")))
-              )
             )
+          )
+        ),
+
+        # KPIs Tab (top-level)
+        shiny::tabPanel(
+          "KPIs",
+          shiny::tabsetPanel(
+            shiny::tabPanel("Margins", with_spinner(shiny::plotOutput("kpi_margins_plot", height = "500px"))),
+            shiny::tabPanel("ROIC", with_spinner(shiny::plotOutput("kpi_roic_plot", height = "500px"))),
+            shiny::tabPanel("GROIC", with_spinner(shiny::plotOutput("kpi_groic_plot", height = "500px"))),
+            shiny::tabPanel("ROE", with_spinner(shiny::plotOutput("kpi_roe_plot", height = "500px"))),
+            shiny::tabPanel("FCF Conversion", with_spinner(shiny::plotOutput("kpi_fcf_conversion_plot", height = "500px"))),
+            shiny::tabPanel("Cost of Debt", with_spinner(shiny::plotOutput("kpi_cost_of_debt_plot", height = "500px"))),
+            shiny::tabPanel("Interest Coverage", with_spinner(shiny::plotOutput("kpi_interest_coverage_plot", height = "500px"))),
+            shiny::tabPanel("Leverage", with_spinner(shiny::plotOutput("kpi_leverage_plot", height = "500px")))
+          )
+        ),
+
+        # Per-Share Growth Tab (top-level)
+        shiny::tabPanel(
+          "Per-Share Growth",
+          shiny::tabsetPanel(
+            shiny::tabPanel("Revenue", with_spinner(shiny::plotOutput("ps_revenue_plot", height = "500px"))),
+            shiny::tabPanel("Gross Profit", with_spinner(shiny::plotOutput("ps_gross_profit_plot", height = "500px"))),
+            shiny::tabPanel("EBIT", with_spinner(shiny::plotOutput("ps_ebit_plot", height = "500px"))),
+            shiny::tabPanel("EBITDA", with_spinner(shiny::plotOutput("ps_ebitda_plot", height = "500px"))),
+            shiny::tabPanel("NOPAT", with_spinner(shiny::plotOutput("ps_nopat_plot", height = "500px"))),
+            shiny::tabPanel("FCF", with_spinner(shiny::plotOutput("ps_fcf_plot", height = "500px"))),
+            shiny::tabPanel("Book Value", with_spinner(shiny::plotOutput("ps_bv_plot", height = "500px")))
           )
         ),
 
@@ -428,6 +464,60 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$sidebar_ticker, {
     shiny::req(input$sidebar_ticker)
     shiny::updateTextInput(session, "ticker", value = input$sidebar_ticker)
+  }, ignoreInit = TRUE)
+
+  # Helper: update lookback button active states via JavaScript
+  update_lookback_buttons <- function(active_id) {
+    js <- sprintf("
+      $('.lookback-buttons .btn').removeClass('active');
+      $('#%s').addClass('active');
+    ", active_id)
+    shinyjs::runjs(js)
+  }
+
+  # Lookback button observers
+  shiny::observeEvent(input$lookback_1y, {
+    shiny::updateNumericInput(session, "lookback_days", value = 365)
+    update_lookback_buttons("lookback_1y")
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$lookback_3y, {
+    shiny::updateNumericInput(session, "lookback_days", value = 1095)
+    update_lookback_buttons("lookback_3y")
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$lookback_5y, {
+    shiny::updateNumericInput(session, "lookback_days", value = 1825)
+    update_lookback_buttons("lookback_5y")
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$lookback_10y, {
+    shiny::updateNumericInput(session, "lookback_days", value = 3650)
+    update_lookback_buttons("lookback_10y")
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$lookback_si, {
+    shiny::req(input$ticker)
+    # Calculate days since earliest price data for this ticker
+    earliest_date <- artifacts$price_data %>%
+      dplyr::filter(ticker == input$ticker) %>%
+      dplyr::summarize(min_date = min(date, na.rm = TRUE)) %>%
+      dplyr::pull(min_date)
+    if (!is.na(earliest_date)) {
+      days_since_inception <- as.integer(Sys.Date() - earliest_date)
+      shiny::updateNumericInput(session, "lookback_days", value = days_since_inception)
+    }
+    update_lookback_buttons("lookback_si")
+  }, ignoreInit = TRUE)
+
+  # Clear button highlight when custom value is manually entered
+
+  shiny::observeEvent(input$lookback_days, {
+    # Only clear if value doesn't match preset buttons
+    preset_values <- c(365, 1095, 1825, 3650)
+    if (!input$lookback_days %in% preset_values) {
+      shinyjs::runjs("$('.lookback-buttons .btn').removeClass('active');")
+    }
   }, ignoreInit = TRUE)
 
   # Reactive: start date based on lookback days
