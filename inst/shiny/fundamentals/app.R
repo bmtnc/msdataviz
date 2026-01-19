@@ -14,6 +14,70 @@ to_title_case <- function(x) {
 # Load artifacts on startup (cached)
 artifacts <- get_cached_artifacts()
 
+# Pre-compute universe data on startup for fast filtering
+# Using early start date to capture all available history
+message("Pre-computing universe KPIs...")
+universe_kpis_full <- prepare_universe_kpis(
+  artifacts$ttm_data,
+  start_date = as.Date("2000-01-01")
+)
+
+# Helper to compute KPI median columns
+compute_kpi_medians <- function(data, ...) {
+  data %>%
+    dplyr::group_by(...) %>%
+    dplyr::summarize(
+      peer_roic = median(roic, na.rm = TRUE),
+      peer_groic = median(groic, na.rm = TRUE),
+      peer_roe = median(roe, na.rm = TRUE),
+      peer_fcf_conversion = median(fcf_conversion, na.rm = TRUE),
+      peer_cost_of_debt = median(cost_of_debt, na.rm = TRUE),
+      peer_interest_coverage = median(interest_coverage, na.rm = TRUE),
+      peer_debt_to_ebitda = median(debt_to_ebitda, na.rm = TRUE),
+      n_peers = dplyr::n_distinct(ticker),
+      .groups = "drop"
+    )
+}
+
+# Pre-compute market-wide KPI medians only
+kpi_medians_market <- compute_kpi_medians(universe_kpis_full, calendar_quarter_ending)
+
+message("Pre-computing universe valuations (this may take a moment)...")
+universe_valuations_full <- prepare_universe_valuations_daily(
+  artifacts$ttm_data,
+  artifacts$price_data,
+  start_date = as.Date("2000-01-01")
+)
+
+# Pre-compute market-wide peer medians only (sector/subsector/industry computed on demand)
+message("Pre-computing market-wide peer medians...")
+
+# Helper to compute valuation median columns
+compute_valuation_medians <- function(data, ...) {
+  data %>%
+    dplyr::group_by(...) %>%
+    dplyr::summarize(
+      peer_price_to_sales = median(price_to_sales, na.rm = TRUE),
+      peer_price_to_book = median(price_to_book, na.rm = TRUE),
+      peer_price_to_gross_profit = median(price_to_gross_profit, na.rm = TRUE),
+      peer_price_to_ebit = median(price_to_ebit, na.rm = TRUE),
+      peer_price_to_earnings = median(price_to_earnings, na.rm = TRUE),
+      peer_price_to_fcf = median(price_to_fcf, na.rm = TRUE),
+      peer_ev_to_ebitda = median(ev_to_ebitda, na.rm = TRUE),
+      peer_ev_to_nopat = median(ev_to_nopat, na.rm = TRUE),
+      peer_dividend_yield = median(dividend_yield, na.rm = TRUE),
+      peer_buyback_yield = median(buyback_yield, na.rm = TRUE),
+      peer_shareholder_yield = median(shareholder_yield, na.rm = TRUE),
+      n_peers = dplyr::n_distinct(ticker),
+      .groups = "drop"
+    )
+}
+
+# Market-wide medians only (by date)
+valuation_medians_market <- compute_valuation_medians(universe_valuations_full, date)
+
+message("Pre-computation complete.")
+
 # Get unique tickers with sector/subsector/industry for search
 ticker_list <- artifacts$ttm_data %>%
   dplyr::distinct(ticker, sector, subsector, industry) %>%
@@ -595,13 +659,16 @@ server <- function(input, output, session) {
     }
   })
 
-  # Reactive: Universe KPIs (all tickers, recomputed when date range changes)
+  # Reactive: Universe KPIs (filter pre-computed data by date range)
   universe_kpis <- shiny::reactive({
     shiny::req(start_date())
-    prepare_universe_kpis(artifacts$ttm_data, start_date())
+    universe_kpis_full %>%
+      dplyr::filter(date >= start_date())
   })
 
-  # Reactive: Peer medians based on selected peer universe
+  # Reactive: Peer medians
+  # Market: use pre-computed medians (instant)
+  # Sector/Subsector/Industry: filter universe first, then aggregate
   # Groups by calendar_quarter_ending (not fiscalDateEnding) since companies have different fiscal calendars
   peer_medians <- shiny::reactive({
     shiny::req(input$ticker, input$peer_universe)
@@ -611,30 +678,24 @@ server <- function(input, output, session) {
       return(NULL)
     }
 
-    data <- universe_kpis()
+    sd <- start_date()
 
-    # Filter to peer group (unless "market" which uses all tickers)
-    if (input$peer_universe != "market") {
+    if (input$peer_universe == "market") {
+      # Use pre-computed market medians
+      kpi_medians_market %>%
+        dplyr::filter(calendar_quarter_ending >= sd)
+    } else {
+      # Filter to peer group first, then compute medians
       info <- selected_info()
       peer_group <- info[[input$peer_universe]]
-      data <- data %>%
-        dplyr::filter(.data[[input$peer_universe]] == peer_group)
-    }
 
-    # Calculate medians by calendar quarter (normalized quarter-end dates)
-    data %>%
-      dplyr::group_by(calendar_quarter_ending) %>%
-      dplyr::summarize(
-        peer_roic = median(roic, na.rm = TRUE),
-        peer_groic = median(groic, na.rm = TRUE),
-        peer_roe = median(roe, na.rm = TRUE),
-        peer_fcf_conversion = median(fcf_conversion, na.rm = TRUE),
-        peer_cost_of_debt = median(cost_of_debt, na.rm = TRUE),
-        peer_interest_coverage = median(interest_coverage, na.rm = TRUE),
-        peer_debt_to_ebitda = median(debt_to_ebitda, na.rm = TRUE),
-        n_peers = dplyr::n_distinct(ticker),
-        .groups = "drop"
-      )
+      universe_kpis_full %>%
+        dplyr::filter(
+          calendar_quarter_ending >= sd,
+          .data[[input$peer_universe]] == peer_group
+        ) %>%
+        compute_kpi_medians(calendar_quarter_ending)
+    }
   })
 
   # Reactive: KPI data with peer medians joined (or just KPI data if "none" selected)
@@ -664,17 +725,16 @@ server <- function(input, output, session) {
     )
   })
 
-  # Reactive: Universe valuations (all tickers, daily, recomputed when date range changes)
+  # Reactive: Universe valuations (filter pre-computed data by date range)
   universe_valuations <- shiny::reactive({
     shiny::req(start_date())
-    prepare_universe_valuations_daily(
-      artifacts$ttm_data,
-      artifacts$price_data,
-      start_date()
-    )
+    universe_valuations_full %>%
+      dplyr::filter(date >= start_date())
   })
 
-  # Reactive: Valuation peer medians based on selected peer universe (daily frequency)
+  # Reactive: Valuation peer medians
+  # Market: use pre-computed medians (instant)
+  # Sector/Subsector/Industry: filter universe first, then aggregate (faster on smaller subset)
   valuation_peer_medians <- shiny::reactive({
     shiny::req(input$ticker, input$peer_universe)
 
@@ -683,34 +743,24 @@ server <- function(input, output, session) {
       return(NULL)
     }
 
-    data <- universe_valuations()
+    sd <- start_date()
 
-    # Filter to peer group (unless "market" which uses all tickers)
-    if (input$peer_universe != "market") {
+    if (input$peer_universe == "market") {
+      # Use pre-computed market medians
+      valuation_medians_market %>%
+        dplyr::filter(date >= sd)
+    } else {
+      # Filter to peer group first (reduces data), then compute medians
       info <- selected_info()
       peer_group <- info[[input$peer_universe]]
-      data <- data %>%
-        dplyr::filter(.data[[input$peer_universe]] == peer_group)
-    }
 
-    # Calculate medians by date (daily frequency)
-    data %>%
-      dplyr::group_by(date) %>%
-      dplyr::summarize(
-        peer_price_to_sales = median(price_to_sales, na.rm = TRUE),
-        peer_price_to_book = median(price_to_book, na.rm = TRUE),
-        peer_price_to_gross_profit = median(price_to_gross_profit, na.rm = TRUE),
-        peer_price_to_ebit = median(price_to_ebit, na.rm = TRUE),
-        peer_price_to_earnings = median(price_to_earnings, na.rm = TRUE),
-        peer_price_to_fcf = median(price_to_fcf, na.rm = TRUE),
-        peer_ev_to_ebitda = median(ev_to_ebitda, na.rm = TRUE),
-        peer_ev_to_nopat = median(ev_to_nopat, na.rm = TRUE),
-        peer_dividend_yield = median(dividend_yield, na.rm = TRUE),
-        peer_buyback_yield = median(buyback_yield, na.rm = TRUE),
-        peer_shareholder_yield = median(shareholder_yield, na.rm = TRUE),
-        n_peers = dplyr::n_distinct(ticker),
-        .groups = "drop"
-      )
+      universe_valuations_full %>%
+        dplyr::filter(
+          date >= sd,
+          .data[[input$peer_universe]] == peer_group
+        ) %>%
+        compute_valuation_medians(date)
+    }
   })
 
   # Reactive: Valuation data with peer medians joined (or just valuation data if "none" selected)
