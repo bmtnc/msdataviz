@@ -255,3 +255,108 @@ renv::restore()
 # Or install avpipeline directly
 renv::install("bmtnc/avpipeline")
 ```
+
+## Deployment
+
+### How it works
+
+The app runs in Docker on a Mac Mini and is accessible via the internet through a Cloudflare Tunnel.
+
+```
+Someone visits unfixedincome.net
+        ↓
+Cloudflare receives the request
+        ↓
+Sends it through an encrypted tunnel to your Mac Mini
+        ↓
+cloudflared (running on Mac Mini) forwards to localhost:3838
+        ↓
+Docker container runs the Shiny app
+        ↓
+Response goes back through the tunnel to the visitor
+```
+
+The key insight: your Mac Mini reaches *out* to Cloudflare (not the other way around). This means no ports need to be opened on your router, and your home IP address stays hidden.
+
+### Components
+
+1. **Docker** - Runs the Shiny app in an isolated container
+2. **cloudflared** - A small program that maintains the tunnel connection to Cloudflare
+3. **Cloudflare** - Routes traffic from your domain to your tunnel
+
+### Docker setup
+
+Build and run the container:
+
+```bash
+docker compose build   # Takes ~30 min first time (compiles R packages)
+docker compose up -d   # Start container in background
+docker compose logs -f # View logs
+docker compose down    # Stop container
+```
+
+The `docker-compose.yml` mounts your `~/.aws` credentials so the app can fetch data from S3.
+
+### Cloudflare Tunnel setup
+
+One-time setup (already done):
+
+```bash
+# Install the tunnel client
+brew install cloudflared
+
+# Login to Cloudflare (opens browser)
+cloudflared tunnel login
+
+# Create a named tunnel
+cloudflared tunnel create msdataviz
+
+# Route your domain to the tunnel
+cloudflared tunnel route dns msdataviz unfixedincome.net
+```
+
+The config file at `~/.cloudflared/config.yml` tells the tunnel where to forward traffic:
+
+```yaml
+tunnel: <tunnel-id>
+credentials-file: /Users/barrymatanic/.cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: unfixedincome.net
+    service: http://localhost:3838
+  - service: http_status:404
+```
+
+### Running the tunnel
+
+Manual start:
+```bash
+cloudflared tunnel run msdataviz
+```
+
+Auto-start on boot (recommended):
+```bash
+brew services start cloudflared
+```
+
+### Verification
+
+1. Start Docker: `docker compose up -d`
+2. Start tunnel: `cloudflared tunnel run msdataviz`
+3. Visit https://unfixedincome.net
+
+### Troubleshooting
+
+```bash
+# Check if container is running
+docker ps
+
+# View container logs
+docker compose logs -f
+
+# Check tunnel status
+cloudflared tunnel info msdataviz
+
+# Test locally (bypass tunnel)
+open http://localhost:3838
+```

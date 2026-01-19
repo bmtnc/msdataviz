@@ -31,6 +31,12 @@ RUN apt-get update && apt-get install -y \
     pandoc \
     && rm -rf /var/lib/apt/lists/*
 
+# Install AWS CLI v2
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf awscliv2.zip aws
+
 # Set working directory
 WORKDIR /app
 
@@ -46,20 +52,22 @@ COPY renv/settings.json renv/settings.json
 # Restore R packages from renv lockfile
 RUN R -e "renv::restore()"
 
+# Reinstall arrow with S3 support (renv installs minimal version)
+ENV LIBARROW_MINIMAL=false
+ENV ARROW_WITH_S3=true
+RUN R -e "install.packages('arrow', repos='https://cloud.r-project.org/')"
+
 # Copy package files
 COPY DESCRIPTION NAMESPACE ./
 COPY R/ ./R/
 COPY man/ ./man/
 COPY inst/ ./inst/
 
-# Install the package
-RUN R -e "devtools::install(dependencies = FALSE)"
+# Install the package using renv (so it goes into renv's library)
+RUN R -e "renv::install('.', prompt = FALSE)"
 
 # Create cache directory for artifacts
 RUN mkdir -p /root/.cache/msdataviz
-
-# Disable renv autoloader - use pre-installed packages from Docker build
-ENV RENV_CONFIG_AUTOLOADER_ENABLED=FALSE
 
 # Expose Shiny port
 EXPOSE 3838

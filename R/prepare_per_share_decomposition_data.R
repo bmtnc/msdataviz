@@ -9,7 +9,7 @@
 #' @param end_date End date for filtering (NULL for no upper bound)
 #'
 #' @return Data frame ready for calculate_share_count_decomposition, or NULL if insufficient data
-#' @keywords internal
+#' @export
 prepare_per_share_decomposition_data <- function(
     ttm_data,
     ticker,

@@ -6,7 +6,7 @@
 #' @param numerator Numerator metric name (e.g., "nopat", "grossProfit")
 #' @param denominator Denominator name (e.g., "equity", "invested_capital")
 #' @return List with: return_label, roa_label, effect_label, multiplier_label, title_suffix, footnote
-#' @keywords internal
+#' @export
 get_dupont_labels <- function(numerator, denominator) {
   avpipeline::validate_character_scalar(numerator, allow_empty = FALSE, name = "numerator")
   avpipeline::validate_character_scalar(denominator, allow_empty = FALSE, name = "denominator")

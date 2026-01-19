@@ -29,4 +29,3 @@ Data frame ready for calculate_share_count_decomposition, or NULL if insufficien
 \description{
 Prepares data for plot_share_count_decomposition for a given metric.
 }
-\keyword{internal}

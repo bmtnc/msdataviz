@@ -18,4 +18,3 @@ List with: return_label, roa_label, effect_label, multiplier_label, title_suffix
 Returns display labels for DuPont decomposition based on numerator and denominator.
 Handles special cases like gross profit which produces custom metrics (GROIC, GROE).
 }
-\keyword{internal}
