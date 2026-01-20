@@ -450,13 +450,34 @@ ui <- shiny::fluidPage(
           "KPIs",
           shiny::tabsetPanel(
             shiny::tabPanel("Margins", with_spinner(shiny::plotOutput("kpi_margins_plot", height = "500px"))),
-            shiny::tabPanel("ROIC", with_spinner(shiny::plotOutput("kpi_roic_plot", height = "500px"))),
-            shiny::tabPanel("GROIC", with_spinner(shiny::plotOutput("kpi_groic_plot", height = "500px"))),
-            shiny::tabPanel("ROE", with_spinner(shiny::plotOutput("kpi_roe_plot", height = "500px"))),
-            shiny::tabPanel("FCF Conversion", with_spinner(shiny::plotOutput("kpi_fcf_conversion_plot", height = "500px"))),
-            shiny::tabPanel("Cost of Debt", with_spinner(shiny::plotOutput("kpi_cost_of_debt_plot", height = "500px"))),
-            shiny::tabPanel("Interest Coverage", with_spinner(shiny::plotOutput("kpi_interest_coverage_plot", height = "500px"))),
-            shiny::tabPanel("Leverage", with_spinner(shiny::plotOutput("kpi_leverage_plot", height = "500px")))
+            shiny::tabPanel("ROIC",
+              with_spinner(shiny::plotOutput("kpi_roic_plot", height = "500px")),
+              shiny::plotOutput("kpi_roic_sparkline", height = "120px")
+            ),
+            shiny::tabPanel("GROIC",
+              with_spinner(shiny::plotOutput("kpi_groic_plot", height = "500px")),
+              shiny::plotOutput("kpi_groic_sparkline", height = "120px")
+            ),
+            shiny::tabPanel("ROE",
+              with_spinner(shiny::plotOutput("kpi_roe_plot", height = "500px")),
+              shiny::plotOutput("kpi_roe_sparkline", height = "120px")
+            ),
+            shiny::tabPanel("FCF Conversion",
+              with_spinner(shiny::plotOutput("kpi_fcf_conversion_plot", height = "500px")),
+              shiny::plotOutput("kpi_fcf_conversion_sparkline", height = "120px")
+            ),
+            shiny::tabPanel("Cost of Debt",
+              with_spinner(shiny::plotOutput("kpi_cost_of_debt_plot", height = "500px")),
+              shiny::plotOutput("kpi_cost_of_debt_sparkline", height = "120px")
+            ),
+            shiny::tabPanel("Interest Coverage",
+              with_spinner(shiny::plotOutput("kpi_interest_coverage_plot", height = "500px")),
+              shiny::plotOutput("kpi_interest_coverage_sparkline", height = "120px")
+            ),
+            shiny::tabPanel("Leverage",
+              with_spinner(shiny::plotOutput("kpi_leverage_plot", height = "500px")),
+              shiny::plotOutput("kpi_leverage_sparkline", height = "120px")
+            )
           )
         ),
 
@@ -710,6 +731,43 @@ server <- function(input, output, session) {
 
     kpi %>%
       dplyr::left_join(peers, by = "calendar_quarter_ending")
+  })
+
+  # Reactive: Extract peer "as of" date (most recent calendar_quarter_ending with peer data)
+  peer_as_of_date <- shiny::reactive({
+    data <- kpi_data_with_peers()
+    if (is.null(data) || !"n_peers" %in% names(data)) {
+      return(NULL)
+    }
+    # Get the most recent quarter that has peer data
+    data %>%
+      dplyr::filter(!is.na(n_peers)) %>%
+      dplyr::pull(calendar_quarter_ending) %>%
+      max(na.rm = TRUE)
+  })
+
+  # Reactive: Extract n_peers for the most recent quarter (matches peer_as_of_date)
+  peer_n_peers <- shiny::reactive({
+    data <- kpi_data_with_peers()
+    as_of <- peer_as_of_date()
+    if (is.null(data) || is.null(as_of) || !"n_peers" %in% names(data)) {
+      return(NULL)
+    }
+    data %>%
+      dplyr::filter(calendar_quarter_ending == as_of) %>%
+      dplyr::pull(n_peers) %>%
+      dplyr::first()
+  })
+
+  # Reactive: X-axis limits for KPI charts (for alignment with cross-section count)
+  kpi_xlim <- shiny::reactive({
+    data <- kpi_data_with_peers()
+    if (is.null(data) || nrow(data) == 0) {
+      return(NULL)
+    }
+    date_range <- range(data$date)
+    date_buffer <- as.numeric(diff(date_range)) * 0.08
+    c(date_range[1], date_range[2] + date_buffer)
   })
 
   # === Valuation Data ===
@@ -1059,8 +1117,9 @@ server <- function(input, output, session) {
         title_suffix = "ROIC",
         peer_col = if (!is.null(pl)) "peer_roic" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
-      )
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL,
+        peer_as_of_date = peer_as_of_date(),
+              )
     }
   })
 
@@ -1080,8 +1139,9 @@ server <- function(input, output, session) {
         title_suffix = "GROIC",
         peer_col = if (!is.null(pl)) "peer_groic" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
-      )
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL,
+        peer_as_of_date = peer_as_of_date(),
+              )
     }
   })
 
@@ -1101,8 +1161,9 @@ server <- function(input, output, session) {
         title_suffix = "ROE",
         peer_col = if (!is.null(pl)) "peer_roe" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
-      )
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL,
+        peer_as_of_date = peer_as_of_date(),
+              )
     }
   })
 
@@ -1122,8 +1183,9 @@ server <- function(input, output, session) {
         title_suffix = "FCF Conversion",
         peer_col = if (!is.null(pl)) "peer_fcf_conversion" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
-      )
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL,
+        peer_as_of_date = peer_as_of_date(),
+              )
     }
   })
 
@@ -1143,8 +1205,9 @@ server <- function(input, output, session) {
         title_suffix = "Cost of Debt",
         peer_col = if (!is.null(pl)) "peer_cost_of_debt" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
-      )
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL,
+        peer_as_of_date = peer_as_of_date(),
+              )
     }
   })
 
@@ -1164,8 +1227,9 @@ server <- function(input, output, session) {
         title_suffix = "Interest Coverage",
         peer_col = if (!is.null(pl)) "peer_interest_coverage" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
-      )
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL,
+        peer_as_of_date = peer_as_of_date(),
+              )
     }
   })
 
@@ -1185,7 +1249,108 @@ server <- function(input, output, session) {
         title_suffix = "Leverage",
         peer_col = if (!is.null(pl)) "peer_debt_to_ebitda" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL,
+        peer_as_of_date = peer_as_of_date(),
+              )
+    }
+  })
+
+  # === KPI Sparkline Charts (peer sample size) ===
+
+  output$kpi_roic_sparkline <- shiny::renderPlot({
+    data <- kpi_data_with_peers()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count",
+        xlim = kpi_xlim()
+      )
+    }
+  })
+
+  output$kpi_groic_sparkline <- shiny::renderPlot({
+    data <- kpi_data_with_peers()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count",
+        xlim = kpi_xlim()
+      )
+    }
+  })
+
+  output$kpi_roe_sparkline <- shiny::renderPlot({
+    data <- kpi_data_with_peers()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count",
+        xlim = kpi_xlim()
+      )
+    }
+  })
+
+  output$kpi_fcf_conversion_sparkline <- shiny::renderPlot({
+    data <- kpi_data_with_peers()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count",
+        xlim = kpi_xlim()
+      )
+    }
+  })
+
+  output$kpi_cost_of_debt_sparkline <- shiny::renderPlot({
+    data <- kpi_data_with_peers()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count",
+        xlim = kpi_xlim()
+      )
+    }
+  })
+
+  output$kpi_interest_coverage_sparkline <- shiny::renderPlot({
+    data <- kpi_data_with_peers()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count",
+        xlim = kpi_xlim()
+      )
+    }
+  })
+
+  output$kpi_leverage_sparkline <- shiny::renderPlot({
+    data <- kpi_data_with_peers()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count",
+        xlim = kpi_xlim()
       )
     }
   })
@@ -1208,7 +1373,7 @@ server <- function(input, output, session) {
         title_suffix = "Price to Sales",
         peer_col = if (!is.null(pl)) "peer_price_to_sales" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1229,7 +1394,7 @@ server <- function(input, output, session) {
         title_suffix = "Price to Book",
         peer_col = if (!is.null(pl)) "peer_price_to_book" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1250,7 +1415,7 @@ server <- function(input, output, session) {
         title_suffix = "Price to Gross Profit",
         peer_col = if (!is.null(pl)) "peer_price_to_gross_profit" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1271,7 +1436,7 @@ server <- function(input, output, session) {
         title_suffix = "Price to EBIT",
         peer_col = if (!is.null(pl)) "peer_price_to_ebit" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1292,7 +1457,7 @@ server <- function(input, output, session) {
         title_suffix = "Price to Earnings",
         peer_col = if (!is.null(pl)) "peer_price_to_earnings" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1313,7 +1478,7 @@ server <- function(input, output, session) {
         title_suffix = "Price to Free Cash Flow",
         peer_col = if (!is.null(pl)) "peer_price_to_fcf" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1334,7 +1499,7 @@ server <- function(input, output, session) {
         title_suffix = "EV to EBITDA",
         peer_col = if (!is.null(pl)) "peer_ev_to_ebitda" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1355,7 +1520,7 @@ server <- function(input, output, session) {
         title_suffix = "EV to NOPAT",
         peer_col = if (!is.null(pl)) "peer_ev_to_nopat" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })
@@ -1376,7 +1541,7 @@ server <- function(input, output, session) {
         title_suffix = "Shareholder Yield",
         peer_col = if (!is.null(pl)) "peer_shareholder_yield" else NULL,
         peer_label = pl,
-        n_peers = if (!is.null(pl)) data$n_peers[1] else NULL
+        n_peers = if (!is.null(pl)) peer_n_peers() else NULL
       )
     }
   })

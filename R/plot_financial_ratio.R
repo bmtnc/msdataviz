@@ -14,6 +14,7 @@
 #' @param peer_label Label for peer median in legend (default: "Peer Median")
 #' @param peer_color Color for peer median line (default: "gray50")
 #' @param n_peers Number of peers for caption (default: NULL)
+#' @param peer_as_of_date Date for peer median "as of" subtitle (default: NULL)
 #'
 #' @return A ggplot2 object
 #' @export
@@ -29,7 +30,8 @@ plot_financial_ratio <- function(
     peer_col = NULL,
     peer_label = "Peer Median",
     peer_color = "gray50",
-    n_peers = NULL
+    n_peers = NULL,
+    peer_as_of_date = NULL
 ) {
   required_cols <- c("date", ratio_cols)
   if (!is.null(peer_col)) {
@@ -53,10 +55,15 @@ plot_financial_ratio <- function(
   }
 
   # Build caption with peer count
-
   caption <- NULL
   if (has_peer && !is.null(n_peers)) {
     caption <- paste0(peer_label, " (n=", n_peers, ")")
+  }
+
+  # Build subtitle with peer "as of" date
+  subtitle <- NULL
+  if (has_peer && !is.null(peer_as_of_date)) {
+    subtitle <- paste0("Peer median as of ", format(peer_as_of_date, "%b %Y"))
   }
 
   # Get last row for callouts
@@ -132,7 +139,7 @@ plot_financial_ratio <- function(
           label = label_text,
           color = color,
           hjust = -0.2,
-          size = 3
+          size = 3.5
         )
     }
   }
@@ -161,7 +168,7 @@ plot_financial_ratio <- function(
           label = peer_label_text,
           color = peer_color,
           hjust = -0.2,
-          size = 2.5
+          size = 3.5
         )
     }
   }
@@ -184,6 +191,7 @@ plot_financial_ratio <- function(
     ggplot2::scale_color_manual(values = color_values) +
     ggplot2::labs(
       title = title,
+      subtitle = subtitle,
       x = NULL,
       y = y_label,
       color = NULL,
@@ -192,6 +200,6 @@ plot_financial_ratio <- function(
     ggplot2::theme(
       plot.title = ggplot2::element_text(hjust = 0),
       plot.subtitle = ggplot2::element_text(hjust = 0),
-      plot.caption = ggplot2::element_text(hjust = 0, size = 8, color = "gray50")
+      plot.caption = ggplot2::element_text(hjust = 0, size = 9, color = "gray50")
     )
 }

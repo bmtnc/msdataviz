@@ -16,7 +16,8 @@ plot_financial_ratio(
   peer_col = NULL,
   peer_label = "Peer Median",
   peer_color = "gray50",
-  n_peers = NULL
+  n_peers = NULL,
+  peer_as_of_date = NULL
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ plot_financial_ratio(
 \item{peer_color}{Color for peer median line (default: "gray50")}
 
 \item{n_peers}{Number of peers for caption (default: NULL)}
+
+\item{peer_as_of_date}{Date for peer median "as of" subtitle (default: NULL)}
 }
 \value{
 A ggplot2 object

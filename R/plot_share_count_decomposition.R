@@ -96,7 +96,8 @@ plot_share_count_decomposition <- function(
         label = scales::percent(per_share_growth, accuracy = 1, big.mark = ",")
       ),
       color = "#061826",
-      hjust = -0.3,
+      hjust = 0.5,
+      vjust = -0.8,
       size = 3.5
     ) +
     ggplot2::scale_fill_manual(values = color_values) +
@@ -129,6 +130,6 @@ plot_share_count_decomposition <- function(
     ggplot2::theme(
       plot.title = ggplot2::element_text(hjust = 0),
       plot.subtitle = ggplot2::element_text(hjust = 0),
-      plot.caption = ggplot2::element_text(hjust = 0, size = 8, color = "gray50")
+      plot.caption = ggplot2::element_text(hjust = 0, size = 9, color = "gray50")
     )
 }
