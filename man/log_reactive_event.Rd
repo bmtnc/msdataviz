@@ -11,7 +11,7 @@ log_reactive_event(name, session, ...)
 
 \item{session}{Shiny session object}
 
-\item{...}{Additional context values for glue interpolation}
+\item{...}{Additional context values (currently unused, reserved for future)}
 }
 \value{
 Invisible NULL
