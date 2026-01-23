@@ -1,0 +1,7 @@
+tunnel: bd38de9e-6d3b-42e5-82c2-908b6fd964bb
+credentials-file: /etc/cloudflared/bd38de9e-6d3b-42e5-82c2-908b6fd964bb.json
+
+ingress:
+  - hostname: unfixedincome.net
+    service: http://shiny:3838
+  - service: http_status:404
