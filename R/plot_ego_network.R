@@ -7,7 +7,7 @@
 #' @param depth Depth used for filtering (for subtitle)
 #' @param seed Random seed for layout reproducibility (default: 42)
 #' @return ggplot object
-#' @keywords internal
+#' @export
 plot_ego_network <- function(graph, ego_ticker, depth = 2, seed = 42) {
   n_nodes <- igraph::vcount(graph)
   n_edges <- igraph::ecount(graph)

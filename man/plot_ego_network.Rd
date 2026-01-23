@@ -21,4 +21,3 @@ ggplot object
 \description{
 Creates a network visualization centered on a specific ticker.
 }
-\keyword{internal}
