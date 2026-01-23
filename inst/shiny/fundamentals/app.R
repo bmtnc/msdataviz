@@ -849,6 +849,20 @@ server <- function(input, output, session) {
       dplyr::left_join(peers, by = "date")
   })
 
+  # Reactive: Valuation peer medians aggregated to quarterly (for sample size plots)
+  valuation_peer_medians_quarterly <- shiny::reactive({
+    peers <- valuation_peer_medians()
+    if (is.null(peers)) {
+      return(NULL)
+    }
+
+    peers %>%
+      dplyr::mutate(quarter = lubridate::floor_date(date, "quarter")) %>%
+      dplyr::group_by(quarter) %>%
+      dplyr::summarize(n_peers = dplyr::first(n_peers), .groups = "drop") %>%
+      dplyr::rename(date = quarter)
+  })
+
   # Helper: safe bar plot
   safe_bar_plot <- function(data, metric_col, ticker, title) {
     prepped <- data %>%
@@ -1563,7 +1577,7 @@ server <- function(input, output, session) {
   # === Valuation Cross-Section Counts ===
 
   output$val_ps_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1576,7 +1590,7 @@ server <- function(input, output, session) {
   })
 
   output$val_pb_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1589,7 +1603,7 @@ server <- function(input, output, session) {
   })
 
   output$val_pgp_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1602,7 +1616,7 @@ server <- function(input, output, session) {
   })
 
   output$val_pebit_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1615,7 +1629,7 @@ server <- function(input, output, session) {
   })
 
   output$val_pe_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1628,7 +1642,7 @@ server <- function(input, output, session) {
   })
 
   output$val_pfcf_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1641,7 +1655,7 @@ server <- function(input, output, session) {
   })
 
   output$val_ev_ebitda_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1654,7 +1668,7 @@ server <- function(input, output, session) {
   })
 
   output$val_ev_nopat_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
@@ -1667,7 +1681,7 @@ server <- function(input, output, session) {
   })
 
   output$val_yield_count <- shiny::renderPlot({
-    data <- valuation_peer_medians()
+    data <- valuation_peer_medians_quarterly()
     if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
       plot_cross_section_count(
         data = data,
