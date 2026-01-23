@@ -12,4 +12,3 @@ lgr Logger object
 \description{
 Returns the configured application logger.
 }
-\keyword{internal}

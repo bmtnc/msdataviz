@@ -26,4 +26,3 @@ Configured lgr Logger object
 \description{
 Creates a configured lgr logger for the Shiny application.
 }
-\keyword{internal}

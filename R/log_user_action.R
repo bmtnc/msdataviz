@@ -7,7 +7,7 @@
 #' @param ... Additional named values for glue interpolation in action string
 #'
 #' @return Invisible NULL
-#' @keywords internal
+#' @export
 log_user_action <- function(action, session, ...) {
   logger <- get_app_logger()
   session_id <- get_session_id(session)

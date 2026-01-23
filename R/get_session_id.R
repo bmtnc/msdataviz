@@ -5,7 +5,7 @@
 #' @param session Shiny session object
 #'
 #' @return Character string with session identifier
-#' @keywords internal
+#' @export
 get_session_id <- function(session) {
   if (is.null(session)) return("no-session")
   if (!is.null(session$token)) {

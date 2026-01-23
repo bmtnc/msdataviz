@@ -19,4 +19,3 @@ Invisible NULL
 \description{
 Logs a user action with session context.
 }
-\keyword{internal}

@@ -8,7 +8,7 @@
 #' @param retention_days Number of days to retain log files
 #'
 #' @return Configured lgr Logger object
-#' @keywords internal
+#' @export
 configure_app_logger <- function(
     log_dir = "~/.cache/msdataviz/logs",
     console_threshold = "info",

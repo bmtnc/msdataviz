@@ -15,4 +15,3 @@ Character string with session identifier
 \description{
 Extracts a short identifier from Shiny session for logging.
 }
-\keyword{internal}
