@@ -7,7 +7,7 @@
 #' @param depth Number of hops from ego to include (default: 2)
 #' @return tidygraph object with nodes filtered to ego neighborhood,
 #'   including degree, dist_from_ego, and is_ego attributes
-#' @keywords internal
+#' @export
 prepare_ego_network <- function(edges, ego_ticker, depth = 2) {
   # Build graph and calculate degree
 

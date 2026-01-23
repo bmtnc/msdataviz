@@ -20,4 +20,3 @@ including degree, dist_from_ego, and is_ego attributes
 \description{
 Filters a network to the neighborhood around a specific ticker.
 }
-\keyword{internal}

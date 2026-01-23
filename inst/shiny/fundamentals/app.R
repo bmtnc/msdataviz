@@ -67,23 +67,36 @@ compute_valuation_medians <- function(data, ...) {
     )
 }
 
-logger$info("Pre-computing universe valuations...")
+# Downsample price data to weekly (last trading day per week) to reduce memory
+logger$info("Pre-computing universe valuations (weekly frequency)...")
+
+# Downsample to weekly: use last trading day's price, but assign the week floor as the date
+# This ensures all stocks in the same week share the same date for median calculations
+weekly_prices <- artifacts$price_data %>%
+  dplyr::mutate(week = lubridate::floor_date(date, "week")) %>%
+  dplyr::group_by(ticker, week) %>%
+  dplyr::filter(date == max(date)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(date = week) %>%
+  dplyr::select(-week)
+
 universe_valuations_temp <- prepare_universe_valuations_daily(
   artifacts$ttm_data,
-  artifacts$price_data,
+  weekly_prices,
   start_date = as.Date("2000-01-01")
 )
 
-# Pre-compute ALL peer group medians (market, sector, subsector, industry)
-# This allows us to free the large universe data from memory after computation
-logger$info("Pre-computing all peer group medians...")
+rm(weekly_prices)
+gc()
+
+# Compute peer group medians directly (weekly data is small enough)
+logger$info("Pre-computing peer group medians...")
 
 valuation_medians_market <- compute_valuation_medians(universe_valuations_temp, date)
 valuation_medians_sector <- compute_valuation_medians(universe_valuations_temp, sector, date)
 valuation_medians_subsector <- compute_valuation_medians(universe_valuations_temp, subsector, date)
 valuation_medians_industry <- compute_valuation_medians(universe_valuations_temp, industry, date)
 
-# Free memory - remove the large universe data (~10M rows)
 rm(universe_valuations_temp)
 gc()
 
@@ -870,8 +883,14 @@ log_user_action("Session started", session)
       return(val)
     }
 
+    # Join by week since peer medians are at weekly frequency
     val %>%
-      dplyr::left_join(peers, by = "date")
+      dplyr::mutate(week = lubridate::floor_date(date, "week")) %>%
+      dplyr::left_join(
+        peers %>% dplyr::mutate(week = lubridate::floor_date(date, "week")) %>% dplyr::select(-date),
+        by = "week"
+      ) %>%
+      dplyr::select(-week)
   })
 
   # Reactive: Valuation peer medians aggregated to quarterly (for sample size plots)

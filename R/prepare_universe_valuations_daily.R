@@ -48,7 +48,7 @@ prepare_universe_valuations_daily <- function(
     ) %>%
     dplyr::select(
       ticker,
-      date = fiscalDateEnding,
+      date = reportedDate,
       sector,
       subsector,
       industry,
@@ -67,6 +67,8 @@ prepare_universe_valuations_daily <- function(
       dividend_per_share,
       buyback_per_share
     ) %>%
+    # Floor to week to align with weekly price data
+    dplyr::mutate(date = lubridate::floor_date(date, "week")) %>%
     dplyr::arrange(ticker, date)
 
   # Join daily prices with quarterly fundamentals, forward-fill by ticker
