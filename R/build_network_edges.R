@@ -5,6 +5,7 @@
 #'
 #' @param matched_data Data frame with ticker, counterparty_ticker, relationship columns
 #' @return Data frame with from, to columns (distinct edges)
+#' @export
 #' @keywords internal
 build_network_edges <- function(matched_data) {
   matched_data %>%

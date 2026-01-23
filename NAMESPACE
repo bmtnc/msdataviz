@@ -2,6 +2,7 @@
 
 export("%>%")
 export(add_data_callout)
+export(build_network_edges)
 export(calculate_buyback_yield)
 export(calculate_dividend_yield)
 export(calculate_ev_to_ebitda)
