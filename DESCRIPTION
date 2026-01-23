@@ -13,7 +13,9 @@ Imports:
     avpipeline,
     dplyr,
     ggplot2,
+    ggraph,
     ggrepel,
+    igraph,
     magrittr,
     MASS,
     rlang,
@@ -23,6 +25,7 @@ Imports:
     shinycssloaders,
     shinyjs,
     tibble,
+    tidygraph,
     tidyr
 Remotes:
     bmtnc/avpipeline

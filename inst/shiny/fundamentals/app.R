@@ -78,6 +78,12 @@ valuation_medians_market <- compute_valuation_medians(universe_valuations_full, 
 
 message("Pre-computation complete.")
 
+# Load network data
+message("Loading network data...")
+network_edges <- get_cached_network_data() %>%
+  build_network_edges()
+message("Network data loaded: ", nrow(network_edges), " edges")
+
 # Get unique tickers with sector/subsector/industry for search
 ticker_list <- artifacts$ttm_data %>%
   dplyr::distinct(ticker, sector, subsector, industry) %>%
@@ -518,6 +524,14 @@ ui <- shiny::fluidPage(
             shiny::tabPanel("ROIC", with_spinner(shiny::plotOutput("roic_plot", height = "550px"))),
             shiny::tabPanel("ROE", with_spinner(shiny::plotOutput("roe_plot", height = "550px")))
           )
+        ),
+
+        # Network Tab
+        shiny::tabPanel(
+          "Network",
+          shiny::h3("Customer-Supplier Network"),
+          shiny::p("Arrows show money flow (payer → payee)."),
+          with_spinner(shiny::plotOutput("network_plot", height = "700px"))
         )
       )
     )
@@ -1715,6 +1729,21 @@ server <- function(input, output, session) {
         roa_label = labels$roa_label
       )
     }
+  })
+
+  # === Network Plot ===
+
+  output$network_plot <- shiny::renderPlot({
+    shiny::req(input$ticker)
+    ticker <- input$ticker
+
+    # Check if ticker exists in network
+    if (!ticker %in% c(network_edges$from, network_edges$to)) {
+      return(NULL)
+    }
+
+    graph <- prepare_ego_network(network_edges, ticker, depth = 2)
+    plot_ego_network(graph, ticker, depth = 2)
   })
 }
 
