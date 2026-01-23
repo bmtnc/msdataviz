@@ -7,7 +7,7 @@
 #' @param max_age_days Maximum cache age in days before refresh (default: 5)
 #' @param force_refresh Force re-fetch from S3 regardless of cache age
 #' @return Data frame with ticker, counterparty_ticker, relationship columns
-#' @keywords internal
+#' @export
 get_cached_network_data <- function(
     cache_dir = "~/.cache/msdataviz",
     max_age_days = 5,

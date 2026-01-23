@@ -24,4 +24,3 @@ Data frame with ticker, counterparty_ticker, relationship columns
 Loads customer-supplier relationship data with local caching.
 Re-fetches from S3 if cache is stale or missing.
 }
-\keyword{internal}
