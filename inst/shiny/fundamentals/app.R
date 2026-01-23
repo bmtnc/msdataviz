@@ -46,16 +46,6 @@ compute_kpi_medians <- function(data, ...) {
 # Pre-compute market-wide KPI medians only
 kpi_medians_market <- compute_kpi_medians(universe_kpis_full, calendar_quarter_ending)
 
-logger$info("Pre-computing universe valuations...")
-universe_valuations_full <- prepare_universe_valuations_daily(
-  artifacts$ttm_data,
-  artifacts$price_data,
-  start_date = as.Date("2000-01-01")
-)
-
-# Pre-compute market-wide peer medians only (sector/subsector/industry computed on demand)
-logger$info("Pre-computing market-wide peer medians...")
-
 # Helper to compute valuation median columns
 compute_valuation_medians <- function(data, ...) {
   data %>%
@@ -77,8 +67,25 @@ compute_valuation_medians <- function(data, ...) {
     )
 }
 
-# Market-wide medians only (by date)
-valuation_medians_market <- compute_valuation_medians(universe_valuations_full, date)
+logger$info("Pre-computing universe valuations...")
+universe_valuations_temp <- prepare_universe_valuations_daily(
+  artifacts$ttm_data,
+  artifacts$price_data,
+  start_date = as.Date("2000-01-01")
+)
+
+# Pre-compute ALL peer group medians (market, sector, subsector, industry)
+# This allows us to free the large universe data from memory after computation
+logger$info("Pre-computing all peer group medians...")
+
+valuation_medians_market <- compute_valuation_medians(universe_valuations_temp, date)
+valuation_medians_sector <- compute_valuation_medians(universe_valuations_temp, sector, date)
+valuation_medians_subsector <- compute_valuation_medians(universe_valuations_temp, subsector, date)
+valuation_medians_industry <- compute_valuation_medians(universe_valuations_temp, industry, date)
+
+# Free memory - remove the large universe data (~10M rows)
+rm(universe_valuations_temp)
+gc()
 
 logger$info("Pre-computation complete")
 
@@ -825,16 +832,8 @@ log_user_action("Session started", session)
     )
   })
 
-  # Reactive: Universe valuations (filter pre-computed data by date range)
-  universe_valuations <- shiny::reactive({
-    shiny::req(start_date())
-    universe_valuations_full %>%
-      dplyr::filter(date >= start_date())
-  })
-
   # Reactive: Valuation peer medians
-  # Market: use pre-computed medians (instant)
-  # Sector/Subsector/Industry: filter universe first, then aggregate (faster on smaller subset)
+  # All peer groups are pre-computed at startup to minimize memory usage
   valuation_peer_medians <- shiny::reactive({
     shiny::req(input$ticker, input$peer_universe)
 
@@ -844,22 +843,20 @@ log_user_action("Session started", session)
     }
 
     sd <- start_date()
+    info <- selected_info()
 
     if (input$peer_universe == "market") {
-      # Use pre-computed market medians
       valuation_medians_market %>%
         dplyr::filter(date >= sd)
-    } else {
-      # Filter to peer group first (reduces data), then compute medians
-      info <- selected_info()
-      peer_group <- info[[input$peer_universe]]
-
-      universe_valuations_full %>%
-        dplyr::filter(
-          date >= sd,
-          .data[[input$peer_universe]] == peer_group
-        ) %>%
-        compute_valuation_medians(date)
+    } else if (input$peer_universe == "sector") {
+      valuation_medians_sector %>%
+        dplyr::filter(date >= sd, sector == info$sector)
+    } else if (input$peer_universe == "subsector") {
+      valuation_medians_subsector %>%
+        dplyr::filter(date >= sd, subsector == info$subsector)
+    } else if (input$peer_universe == "industry") {
+      valuation_medians_industry %>%
+        dplyr::filter(date >= sd, industry == info$industry)
     }
   })
 
