@@ -56,6 +56,15 @@ plot_ego_network <- function(graph, ego_ticker, depth = 2, seed = 42) {
     ) +
     ggraph::geom_node_text(
       ggplot2::aes(label = name),
+      data = ~ dplyr::filter(., dist_from_ego == 0),
+      repel = TRUE,
+      size = 3.5,
+      fontface = "bold",
+      max.overlaps = 25
+    ) +
+    ggraph::geom_node_text(
+      ggplot2::aes(label = name),
+      data = ~ dplyr::filter(., dist_from_ego != 0),
       repel = TRUE,
       size = 2.5,
       max.overlaps = 25
@@ -63,7 +72,7 @@ plot_ego_network <- function(graph, ego_ticker, depth = 2, seed = 42) {
     ggraph::scale_edge_width_continuous(range = c(0.8, 0.3), guide = "none") +
     ggraph::scale_edge_alpha_continuous(range = c(0.8, 0.25), guide = "none") +
     ggplot2::scale_color_manual(
-      values = c("0" = "#FE7F2D", "1" = "#17255A", "2" = "#2E86AB"),
+      values = c("0" = "#FE7F2D", "1" = "#6BAED6", "2" = "#B0B0B0"),
       guide = "none"
     ) +
     ggplot2::scale_alpha_manual(
