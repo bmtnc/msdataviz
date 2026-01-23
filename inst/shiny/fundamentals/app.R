@@ -3,6 +3,10 @@
 # Load the package
 library(msdataviz)
 
+# Configure logger
+logger <- configure_app_logger()
+logger$info("Fundamentals Explorer starting...")
+
 # Helper: convert uppercase/snake_case to Title Case
 to_title_case <- function(x) {
   x %>%
@@ -16,7 +20,7 @@ artifacts <- get_cached_artifacts()
 
 # Pre-compute universe data on startup for fast filtering
 # Using early start date to capture all available history
-message("Pre-computing universe KPIs...")
+logger$info("Pre-computing universe KPIs...")
 universe_kpis_full <- prepare_universe_kpis(
   artifacts$ttm_data,
   start_date = as.Date("2000-01-01")
@@ -42,7 +46,7 @@ compute_kpi_medians <- function(data, ...) {
 # Pre-compute market-wide KPI medians only
 kpi_medians_market <- compute_kpi_medians(universe_kpis_full, calendar_quarter_ending)
 
-message("Pre-computing universe valuations (this may take a moment)...")
+logger$info("Pre-computing universe valuations...")
 universe_valuations_full <- prepare_universe_valuations_daily(
   artifacts$ttm_data,
   artifacts$price_data,
@@ -50,7 +54,7 @@ universe_valuations_full <- prepare_universe_valuations_daily(
 )
 
 # Pre-compute market-wide peer medians only (sector/subsector/industry computed on demand)
-message("Pre-computing market-wide peer medians...")
+logger$info("Pre-computing market-wide peer medians...")
 
 # Helper to compute valuation median columns
 compute_valuation_medians <- function(data, ...) {
@@ -76,13 +80,13 @@ compute_valuation_medians <- function(data, ...) {
 # Market-wide medians only (by date)
 valuation_medians_market <- compute_valuation_medians(universe_valuations_full, date)
 
-message("Pre-computation complete.")
+logger$info("Pre-computation complete")
 
 # Load network data
-message("Loading network data...")
+logger$info("Loading network data...")
 network_edges <- get_cached_network_data() %>%
   build_network_edges()
-message("Network data loaded: ", nrow(network_edges), " edges")
+logger$info(glue::glue("Network data loaded: {nrow(network_edges)} edges"))
 
 # Get unique tickers with sector/subsector/industry for search
 ticker_list <- artifacts$ttm_data %>%
@@ -337,7 +341,7 @@ ui <- shiny::fluidPage(
       shiny::selectizeInput(
         inputId = "sidebar_ticker",
         label = "Search Ticker",
-        choices = ticker_choices,
+        choices = NULL,
         selected = character(0),
         options = list(
           placeholder = "Type to search...",
@@ -544,6 +548,12 @@ server <- function(input, output, session) {
   # Set ggplot theme
   set_ggplot_theme()
 
+  # Session lifecycle logging
+log_user_action("Session started", session)
+  session$onSessionEnded(function() {
+    log_user_action("Session ended", session)
+  })
+
   # Initialize home ticker choices (server-side to start empty)
   shiny::updateSelectizeInput(
     session, "home_ticker",
@@ -552,9 +562,18 @@ server <- function(input, output, session) {
     server = TRUE
   )
 
+  # Initialize sidebar ticker choices (server-side for performance)
+  shiny::updateSelectizeInput(
+    session, "sidebar_ticker",
+    choices = ticker_choices,
+    selected = character(0),
+    server = TRUE
+  )
+
   # Sync home page ticker selection to hidden ticker (controls view state)
   shiny::observeEvent(input$home_ticker, {
     shiny::req(input$home_ticker, nzchar(input$home_ticker))
+    log_user_action("Ticker selected: {ticker}", session, ticker = input$home_ticker)
     shiny::updateTextInput(session, "ticker", value = input$home_ticker)
     shiny::updateSelectizeInput(session, "sidebar_ticker", selected = input$home_ticker)
   }, ignoreInit = TRUE)
@@ -562,6 +581,7 @@ server <- function(input, output, session) {
   # Sync sidebar ticker selection to hidden ticker
   shiny::observeEvent(input$sidebar_ticker, {
     shiny::req(input$sidebar_ticker)
+    log_user_action("Ticker changed via sidebar: {ticker}", session, ticker = input$sidebar_ticker)
     shiny::updateTextInput(session, "ticker", value = input$sidebar_ticker)
   }, ignoreInit = TRUE)
 
@@ -576,27 +596,32 @@ server <- function(input, output, session) {
 
   # Lookback button observers
   shiny::observeEvent(input$lookback_1y, {
+    log_user_action("Lookback changed to 1Y", session)
     shiny::updateNumericInput(session, "lookback_days", value = 365)
     update_lookback_buttons("lookback_1y")
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$lookback_3y, {
+    log_user_action("Lookback changed to 3Y", session)
     shiny::updateNumericInput(session, "lookback_days", value = 1095)
     update_lookback_buttons("lookback_3y")
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$lookback_5y, {
+    log_user_action("Lookback changed to 5Y", session)
     shiny::updateNumericInput(session, "lookback_days", value = 1825)
     update_lookback_buttons("lookback_5y")
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$lookback_10y, {
+    log_user_action("Lookback changed to 10Y", session)
     shiny::updateNumericInput(session, "lookback_days", value = 3650)
     update_lookback_buttons("lookback_10y")
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$lookback_si, {
     shiny::req(input$ticker)
+    log_user_action("Lookback changed to Since Inception", session)
     # Calculate days since earliest price data for this ticker
     earliest_date <- artifacts$price_data %>%
       dplyr::filter(ticker == input$ticker) %>%
@@ -663,6 +688,7 @@ server <- function(input, output, session) {
   # Reactive: prepared fundamentals data
   fundamentals_data <- shiny::reactive({
     shiny::req(input$ticker, start_date())
+    log_reactive_event("fundamentals_data", session, ticker = input$ticker)
     prepare_fundamentals_data(
       ticker = input$ticker,
       ttm_data = artifacts$ttm_data,
@@ -688,6 +714,7 @@ server <- function(input, output, session) {
   # Reactive: KPI data for financial ratio charts
   kpi_data <- shiny::reactive({
     shiny::req(input$ticker)
+    log_reactive_event("kpi_data", session, ticker = input$ticker)
     fund_data <- fundamentals_data()
     if (!is.null(fund_data) && nrow(fund_data) > 0) {
       prepare_kpi_data(fund_data)
@@ -789,6 +816,7 @@ server <- function(input, output, session) {
   # Reactive: Valuation data for ticker (daily frequency)
   valuation_data <- shiny::reactive({
     shiny::req(input$ticker, start_date())
+    log_reactive_event("valuation_data", session, ticker = input$ticker)
     prepare_valuation_multiples_data(
       ticker = input$ticker,
       price_data = artifacts$price_data,
