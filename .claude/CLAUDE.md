@@ -366,6 +366,26 @@ The `get_cached_artifacts()` function returns preprocessed data. Key columns in 
 
 **Use `calendar_quarter_ending` for cross-sectional comparisons** since companies have different fiscal calendars. Joining on `fiscalDateEnding` will fail to match peers.
 
+## Docker Workflow
+
+**NEVER use `--no-cache` when rebuilding Docker containers** unless explicitly requested. Docker layer caching exists for a reason - it preserves expensive operations like installing R packages.
+
+```bash
+# GOOD: Let Docker use cached layers
+docker compose build shiny
+docker compose up -d
+
+# BAD: Forces full rebuild, reinstalls all packages unnecessarily
+docker compose build --no-cache shiny
+```
+
+For R code changes, only the final `COPY` layer needs to rebuild. Using `--no-cache` wastes significant time reinstalling all dependencies.
+
+**You almost never need `--no-cache`:**
+- New R dependencies: Docker detects `renv.lock` changed and rebuilds from that layer
+- Code changes: Docker detects source files changed and rebuilds final layers
+- Only use `--no-cache` if: base image needs updating, cache is corrupted, or user explicitly requests it
+
 ## Important Notes
 
 - Avoid backwards-compatibility hacks or re-exports of unused types
