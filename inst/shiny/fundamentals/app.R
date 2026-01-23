@@ -499,15 +499,15 @@ ui <- shiny::fluidPage(
         shiny::tabPanel(
           "Valuation",
           shiny::tabsetPanel(
-            shiny::tabPanel("P/S", with_spinner(shiny::plotOutput("val_ps_plot", height = "500px"))),
-            shiny::tabPanel("P/B", with_spinner(shiny::plotOutput("val_pb_plot", height = "500px"))),
-            shiny::tabPanel("P/Gross Profit", with_spinner(shiny::plotOutput("val_pgp_plot", height = "500px"))),
-            shiny::tabPanel("P/EBIT", with_spinner(shiny::plotOutput("val_pebit_plot", height = "500px"))),
-            shiny::tabPanel("P/E", with_spinner(shiny::plotOutput("val_pe_plot", height = "500px"))),
-            shiny::tabPanel("P/FCF", with_spinner(shiny::plotOutput("val_pfcf_plot", height = "500px"))),
-            shiny::tabPanel("EV/EBITDA", with_spinner(shiny::plotOutput("val_ev_ebitda_plot", height = "500px"))),
-            shiny::tabPanel("EV/NOPAT", with_spinner(shiny::plotOutput("val_ev_nopat_plot", height = "500px"))),
-            shiny::tabPanel("Shareholder Yield", with_spinner(shiny::plotOutput("val_yield_plot", height = "500px")))
+            shiny::tabPanel("P/S", with_spinner(shiny::plotOutput("val_ps_plot", height = "400px")), shiny::plotOutput("val_ps_count", height = "100px")),
+            shiny::tabPanel("P/B", with_spinner(shiny::plotOutput("val_pb_plot", height = "400px")), shiny::plotOutput("val_pb_count", height = "100px")),
+            shiny::tabPanel("P/Gross Profit", with_spinner(shiny::plotOutput("val_pgp_plot", height = "400px")), shiny::plotOutput("val_pgp_count", height = "100px")),
+            shiny::tabPanel("P/EBIT", with_spinner(shiny::plotOutput("val_pebit_plot", height = "400px")), shiny::plotOutput("val_pebit_count", height = "100px")),
+            shiny::tabPanel("P/E", with_spinner(shiny::plotOutput("val_pe_plot", height = "400px")), shiny::plotOutput("val_pe_count", height = "100px")),
+            shiny::tabPanel("P/FCF", with_spinner(shiny::plotOutput("val_pfcf_plot", height = "400px")), shiny::plotOutput("val_pfcf_count", height = "100px")),
+            shiny::tabPanel("EV/EBITDA", with_spinner(shiny::plotOutput("val_ev_ebitda_plot", height = "400px")), shiny::plotOutput("val_ev_ebitda_count", height = "100px")),
+            shiny::tabPanel("EV/NOPAT", with_spinner(shiny::plotOutput("val_ev_nopat_plot", height = "400px")), shiny::plotOutput("val_ev_nopat_count", height = "100px")),
+            shiny::tabPanel("Shareholder Yield", with_spinner(shiny::plotOutput("val_yield_plot", height = "400px")), shiny::plotOutput("val_yield_count", height = "100px"))
           )
         ),
 
@@ -1542,6 +1542,125 @@ server <- function(input, output, session) {
         peer_col = if (!is.null(pl)) "peer_shareholder_yield" else NULL,
         peer_label = pl,
         n_peers = if (!is.null(pl)) peer_n_peers() else NULL
+      )
+    }
+  })
+
+  # === Valuation Cross-Section Counts ===
+
+  output$val_ps_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_pb_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_pgp_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_pebit_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_pe_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_pfcf_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_ev_ebitda_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_ev_nopat_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
+      )
+    }
+  })
+
+  output$val_yield_count <- shiny::renderPlot({
+    data <- valuation_peer_medians()
+    if (!is.null(data) && "n_peers" %in% names(data) && input$peer_universe != "none") {
+      plot_cross_section_count(
+        data = data,
+        date_col = "date",
+        count_col = "n_peers",
+        title = NULL,
+        y_label = "Count"
       )
     }
   })

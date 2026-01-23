@@ -12,6 +12,19 @@ services:
       - ~/.aws:/root/.aws:ro
       # Persist artifact cache across container restarts
       - artifact-cache:/root/.cache/msdataviz
+    mem_limit: 8g
+    memswap_limit: 8g
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: msdataviz-cloudflared
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./.cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ~/.cloudflared/bd38de9e-6d3b-42e5-82c2-908b6fd964bb.json:/etc/cloudflared/bd38de9e-6d3b-42e5-82c2-908b6fd964bb.json:ro
+    depends_on:
+      - shiny
     restart: unless-stopped
 
 volumes:
