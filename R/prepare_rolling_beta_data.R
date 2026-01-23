@@ -7,6 +7,7 @@
 #' @param sector_tickers Character vector of tickers in the sector
 #' @param roll_window Rolling window size in days (default: 252)
 #' @return Data frame with columns: date, beta
+#' @export
 #' @keywords internal
 prepare_rolling_beta_data <- function(
   price_data,

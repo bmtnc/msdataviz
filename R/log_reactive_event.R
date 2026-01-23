@@ -7,6 +7,7 @@
 #' @param ... Additional context values (currently unused, reserved for future)
 #'
 #' @return Invisible NULL
+#' @export
 #' @keywords internal
 log_reactive_event <- function(name, session, ...) {
   logger <- get_app_logger()

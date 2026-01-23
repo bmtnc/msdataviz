@@ -5,6 +5,7 @@
 #' @param sector Character string of the sector name
 #' @param ttm_data Data frame with columns: ticker, sector
 #' @return Character vector of ticker symbols
+#' @export
 #' @keywords internal
 get_sector_tickers <- function(sector, ttm_data) {
   avpipeline::validate_character_scalar(sector, allow_empty = FALSE, name = "sector")

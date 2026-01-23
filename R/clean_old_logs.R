@@ -6,6 +6,7 @@
 #' @param retention_days Number of days to retain
 #'
 #' @return Invisible NULL
+#' @export
 #' @keywords internal
 clean_old_logs <- function(log_dir, retention_days) {
   log_files <- list.files(log_dir, pattern = "\\.log$", full.names = TRUE)

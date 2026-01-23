@@ -3,6 +3,7 @@
 #' Returns taxonomy mapping for equities: sector -> subsector -> industry.
 #'
 #' @return A tibble with columns: sector, subsector, industry
+#' @export
 #' @keywords internal
 equities_taxonomy <- function() {
   tibble::tribble(

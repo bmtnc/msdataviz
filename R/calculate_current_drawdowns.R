@@ -6,6 +6,7 @@
 #' @param tickers Vector of ticker symbols to include
 #' @param latest_date The date to calculate current drawdown as of
 #' @return Numeric vector of current drawdowns (one per ticker)
+#' @export
 #' @keywords internal
 calculate_current_drawdowns <- function(price_data, tickers, latest_date) {
   price_data %>%

@@ -5,6 +5,7 @@
 #' @param denominator Short denominator name: "equity", "invested_capital", "total_assets"
 #' @return List with: display_name, columns, is_calculated, return_label,
 #'   effect_label, multiplier_label, title_suffix
+#' @export
 #' @keywords internal
 get_denominator_config <- function(denominator) {
   avpipeline::validate_character_scalar(denominator, allow_empty = FALSE, name = "denominator")

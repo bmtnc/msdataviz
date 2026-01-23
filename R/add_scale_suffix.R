@@ -4,6 +4,7 @@
 #' @param max_abs_value Maximum absolute value to determine scale
 #'
 #' @return Modified ggplot object
+#' @export
 #' @keywords internal
 add_scale_suffix <- function(p, max_abs_value) {
   max_abs_value <- abs(max_abs_value)

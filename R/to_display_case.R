@@ -4,6 +4,7 @@
 #'
 #' @param x Character vector
 #' @return Character vector in Title Case
+#' @export
 #' @keywords internal
 to_display_case <- function(x) {
   x %>%

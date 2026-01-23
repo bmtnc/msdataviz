@@ -10,6 +10,7 @@
 #' @param ttm_data Data frame with ticker classifications
 #'
 #' @return Data frame with columns: date, ticker, drawdown
+#' @export
 #' @keywords internal
 prepare_peer_drawdowns <- function(
     ticker,

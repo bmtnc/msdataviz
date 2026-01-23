@@ -5,6 +5,7 @@
 #' @param ttm_data Data frame with TTM columns and commonStockSharesOutstanding
 #' @param metric_config List from get_metric_config()
 #' @return Numeric vector of per-share values
+#' @export
 #' @keywords internal
 calculate_fundamental_per_share <- function(ttm_data, metric_config) {
   shares <- ttm_data$commonStockSharesOutstanding

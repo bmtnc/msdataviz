@@ -6,6 +6,7 @@
 #' @param lower_pct Lower percentile (default: 0.01 for 1st percentile)
 #' @param upper_pct Upper percentile (default: 0.99 for 99th percentile)
 #' @return Winsorized numeric vector
+#' @export
 #' @keywords internal
 winsorize <- function(x, lower_pct = 0.01, upper_pct = 0.99) {
   if (all(is.na(x))) return(x)

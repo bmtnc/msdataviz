@@ -5,6 +5,7 @@
 #' @param profile Profile name: "default", "financial", "asset_heavy", "early_stage"
 #' @return Named list with: price_decomp_metric, price_decomp_numerator,
 #'   kpi_metric, dupont_numerator, dupont_denominator
+#' @export
 #' @keywords internal
 get_report_profile <- function(profile = "default") {
   avpipeline::validate_character_scalar(profile, allow_empty = FALSE, name = "profile")

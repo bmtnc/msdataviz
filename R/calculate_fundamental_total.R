@@ -6,6 +6,7 @@
 #' @param metric_config List from get_metric_config()
 #' @param tax_rate Tax rate for NOPAT calculation (default: 0.2375)
 #' @return Numeric vector of total values
+#' @export
 #' @keywords internal
 calculate_fundamental_total <- function(ttm_data, metric_config, tax_rate = 0.2375) {
   if (metric_config$is_calculated) {

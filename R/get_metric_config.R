@@ -4,6 +4,7 @@
 #'
 #' @param metric Short metric name (e.g., "nopat", "ebitda", "fcf")
 #' @return List with: display_name, ttm_columns, is_calculated
+#' @export
 #' @keywords internal
 get_metric_config <- function(metric) {
   avpipeline::validate_character_scalar(metric, allow_empty = FALSE, name = "metric")

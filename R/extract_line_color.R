@@ -6,6 +6,7 @@
 #' @param p A ggplot2 object
 #'
 #' @return Character string with the color value
+#' @export
 #' @keywords internal
 extract_line_color <- function(p) {
   # Try to get color from built plot data first (works for both mapped and set colors)

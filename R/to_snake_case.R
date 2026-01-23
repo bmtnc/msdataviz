@@ -4,6 +4,7 @@
 #'
 #' @param x Character vector
 #' @return Character vector in snake_case
+#' @export
 #' @keywords internal
 to_snake_case <- function(x) {
   x %>%

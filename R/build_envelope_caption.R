@@ -9,6 +9,7 @@
 #' @param winsorize_pct Winsorization percentage (0-1 scale)
 #'
 #' @return A character string with newline-separated caption lines
+#' @export
 #' @keywords internal
 build_envelope_caption <- function(
     n_population,
