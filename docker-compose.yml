@@ -4,12 +4,12 @@ services:
     container_name: msdataviz-shiny
     ports:
       - "3838:3838"
+    env_file:
+      - .env
     environment:
       - AWS_REGION=us-east-1
       - S3_BUCKET=avpipeline-artifacts-prod
     volumes:
-      # Mount AWS credentials from host
-      - ~/.aws:/root/.aws:ro
       # Persist artifact cache across container restarts
       - artifact-cache:/root/.cache/msdataviz
     mem_limit: 8g

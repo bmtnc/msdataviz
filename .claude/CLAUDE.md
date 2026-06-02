@@ -386,6 +386,10 @@ For R code changes, only the final `COPY` layer needs to rebuild. Using `--no-ca
 - Code changes: Docker detects source files changed and rebuilds final layers
 - Only use `--no-cache` if: base image needs updating, cache is corrupted, or user explicitly requests it
 
+### Export All Functions
+
+**Every function in `R/` must have `@export`** - even internal helpers. Unexported functions are inaccessible when installed via `renv::install('.')` in Docker, causing runtime errors.
+
 ## Important Notes
 
 - Avoid backwards-compatibility hacks or re-exports of unused types
